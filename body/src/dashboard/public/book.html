@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Amy's Books</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&family=Homemade+Apple&display=swap" rel="stylesheet">
+<style>
+  :root { --line: 34px; --ink: #1d2a5a; --ink2: #7a1f2b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 50% 30%, #3b2a20, #120b08); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Dancing Script', cursive; color: #e8d9b8; overflow: hidden; }
+  #bar { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; font-family: system-ui, sans-serif; font-size: 13px; }
+  #bar button { background: #5a3d2b; color: #f2e3c4; border: 1px solid #8a6248; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  #bar button:hover { background: #714d36; }
+  #status { min-width: 220px; text-align: center; font-family: 'Dancing Script', cursive; font-size: 20px; }
+  #book { position: relative; width: min(1200px, 96vw); height: min(780px, 86vh); padding: 18px; border-radius: 14px; background: linear-gradient(135deg, #5b2e1c, #3a1b10); box-shadow: 0 30px 60px rgba(0,0,0,.7), inset 0 0 0 3px #7a4a2e; display: flex; perspective: 2400px; }
+  .page { position: relative; flex: 1; height: 100%; padding: 46px 40px 40px 64px; overflow: hidden;
+    background-color: #f6ecd2;
+    background-image: linear-gradient(90deg, transparent 52px, rgba(200,60,60,.45) 52px, rgba(200,60,60,.45) 54px, transparent 54px),
+      repeating-linear-gradient(180deg, transparent 0, transparent calc(var(--line) - 1px), rgba(70,110,170,.28) calc(var(--line) - 1px), rgba(70,110,170,.28) var(--line));
+    background-position: 0 0, 0 46px; }
+  .page.left { border-radius: 8px 0 0 8px; box-shadow: inset -40px 0 50px -30px rgba(60,30,10,.55); }
+  .page.right { border-radius: 0 8px 8px 0; box-shadow: inset 40px 0 50px -30px rgba(60,30,10,.55); transform-origin: left center; }
+  .page.right.flip { animation: flip .7s ease-in-out; }
+  @keyframes flip { 0% { transform: rotateY(0) } 50% { transform: rotateY(-90deg); filter: brightness(.7) } 100% { transform: rotateY(0) } }
+  .body { position: absolute; inset: 46px 34px 38px 64px; overflow-y: auto; scrollbar-width: none; }
+  .body::-webkit-scrollbar { display: none; }
+  .w { display: inline-block; white-space: nowrap; }
+  .ln.when { font-family: 'Dancing Script', cursive; font-size: 18px; color: #6b5a40; }
+  .ln.src { font-family: system-ui, sans-serif; font-size: 11px; color: #6b6b8a; line-height: 18px; min-height: 18px; }
+  #tabs { display: flex; gap: 6px; }
+  #tabs a { color: #f2e3c4; text-decoration: none; padding: 6px 12px; border-radius: 6px; border: 1px solid #8a6248; }
+  #tabs a.on { background: #8a6248; }
+  .ln { min-height: var(--line); line-height: var(--line); font-family: 'Homemade Apple', cursive; font-size: 17px; color: var(--ink); white-space: pre-wrap; position: relative; }
+  .ln.title { font-family: 'Dancing Script', cursive; font-weight: 700; font-size: 34px; line-height: calc(var(--line) * 1.5); min-height: calc(var(--line) * 1.5); color: var(--ink2); }
+  .ln.style { font-family: 'Dancing Script', cursive; font-size: 18px; color: #4b4b4b; line-height: calc(var(--line) / 1.25); min-height: 0; }
+  .ln.tag { font-family: 'Dancing Script', cursive; font-weight: 700; font-size: 21px; color: var(--ink2); }
+  .ln.notes { font-family: 'Dancing Script', cursive; font-size: 19px; color: #555; font-style: italic; }
+  .ln.added { color: #0d5a3a; }
+  .ch { display: inline-block; clip-path: inset(0 100% 0 0); transform: translateY(var(--dy, 0)) rotate(var(--rot, 0deg)); transition-property: clip-path; transition-timing-function: ease-out; }
+  .ch.ink { clip-path: inset(0 -10% 0 0); }
+  .ch.sp { width: .32em; }
+  .ln::after { content: ''; position: absolute; left: -4px; top: 52%; height: 2px; width: 0; background: rgba(150,20,30,.85); border-radius: 2px; transform: rotate(-.6deg); transition: width var(--strike, .6s) linear; }
+  .ln.struck::after { width: calc(100% + 8px); }
+  .ln.struck { opacity: .55; }
+  .pageno { position: absolute; bottom: 12px; font-family: 'Dancing Script', cursive; color: #8a7457; font-size: 16px; }
+  .left .pageno { left: 30px; } .right .pageno { right: 30px; }
+  #pen { position: absolute; width: 46px; height: 46px; pointer-events: none; z-index: 10; transition: left .09s linear, top .09s linear; transform: translate(-6px, -40px); filter: drop-shadow(3px 6px 4px rgba(0,0,0,.35)); }
+  #pen.thinking { animation: tap 1.2s ease-in-out infinite; }
+  @keyframes tap { 0%,100% { transform: translate(-6px,-40px) rotate(0) } 50% { transform: translate(-2px,-50px) rotate(-8deg) } }
+  #pen.hidden { opacity: 0; }
+  .empty { font-family: 'Dancing Script', cursive; font-size: 26px; color: #8a7457; text-align: center; margin-top: 40%; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <div id="tabs"><a href="?book=songbook" id="t-songbook">♪ Songbook</a><a href="?book=journal" id="t-journal">✎ Journal</a></div>
+  <button id="prev">◀ Prev</button>
+  <div id="status"></div>
+  <button id="next">Next ▶</button>
+  <label>Pen speed <input id="speed" type="range" min="2" max="60" value="9"></label>
+  <button id="replay">✎ Replay writing</button>
+</div>
+<div id="book">
+  <div class="page left"><div class="body" id="L"></div><div class="pageno" id="pl"></div></div>
+  <div class="page right" id="R0"><div class="body" id="R"></div><div class="pageno" id="pr"></div></div>
+  <svg id="pen" class="hidden" viewBox="0 0 64 64"><path d="M6 58 L14 40 L48 6 Q54 2 58 6 Q62 10 58 16 L24 50 Z" fill="#2b1a10"/><path d="M14 40 L24 50 L6 58 Z" fill="#c9a24a"/><path d="M6 58 L10 50 L12 52 Z" fill="#111"/><path d="M44 10 L54 20" stroke="#c9a24a" stroke-width="3"/></svg>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const L = $('L'), R = $('R'), pen = $('pen'), book = $('book');
+const BOOK = new URLSearchParams(location.search).get('book') === 'journal' ? 'journal' : 'songbook';
+const WANT = new URLSearchParams(location.search).get('id');
+$('t-' + BOOK).classList.add('on');
+const NAME = BOOK === 'journal' ? "Amy's Journal" : "Amy's Songbook";
+document.title = NAME;
+let songs = [], index = 0, busy = false;
+const queue = [];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const speed = () => Number($('speed').value); // characters per second
+
+function linesOf(s) {
+  return BOOK === 'journal' ? journalLines(s) : songLines(s);
+}
+function journalLines(e) {
+  const out = [{ cls: 'title', text: e.title || 'Untitled' }, { cls: 'when', text: `${new Date(e.day + 'T12:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}${e.time ? ', ' + e.time : ''}${e.why ? ' · ' + e.why : ''}` }, { cls: '', text: '' }];
+  for (const p of String(e.body || '').split(/\n+/)) if (p.trim()) out.push({ cls: '', text: p.trim() });
+  if (e.sources?.length) { out.push({ cls: '', text: '' }); for (const s of e.sources) out.push({ cls: 'src', text: s }); }
+  return out;
+}
+function songLines(s) {
+  const out = [{ cls: 'title', text: s.title || 'Untitled' }];
+  if (s.style) out.push({ cls: 'style', text: s.style });
+  out.push({ cls: '', text: '' });
+  for (const t of String(s.lyrics || '').split('\n')) out.push({ cls: /^\s*\[[^\]]+\]\s*$/.test(t) ? 'tag' : '', text: t.trim() });
+  if (s.notes) out.push({ cls: '', text: '' }, { cls: 'notes', text: '— ' + s.notes });
+  return out;
+}
+
+function makeLine({ cls, text }, inked) {
+  const el = document.createElement('div');
+  el.className = 'ln ' + (cls || '');
+  // Words stay whole so long lines wrap at spaces, on the ruled lines.
+  text.split(/( +)/).forEach((part) => {
+    if (!part) return;
+    if (/^ +$/.test(part)) return el.appendChild(document.createTextNode(part));
+    const word = document.createElement('span');
+    word.className = 'w';
+    for (const c of part) {
+      const span = document.createElement('span');
+      span.className = 'ch' + (inked ? ' ink' : '');
+      span.textContent = c;
+      span.style.setProperty('--dy', ((Math.random() - .5) * 2.2).toFixed(1) + 'px');
+      span.style.setProperty('--rot', ((Math.random() - .5) * 3).toFixed(1) + 'deg');
+      word.appendChild(span);
+    }
+    el.appendChild(word);
+  });
+  return el;
+}
+
+// Fills the left page, then the right; past that the right page scrolls with the pen.
+function place(el) {
+  if (L.dataset.full) return R.appendChild(el);
+  L.appendChild(el);
+  if (L.scrollHeight > L.clientHeight) { L.dataset.full = '1'; R.appendChild(el); }
+}
+
+function clear(song) {
+  L.replaceChildren(); R.replaceChildren(); delete L.dataset.full; R.scrollTop = 0;
+  $('pl').textContent = !song ? '' : BOOK === 'journal' ? song.day : `#${song.id} · ${song.status}`;
+  $('pr').textContent = song ? `${index + 1} / ${songs.length}` : '';
+}
+
+function showStatic(song) {
+  clear(song);
+  if (!song) { L.innerHTML = `<div class="empty">${BOOK === 'journal' ? 'No journal entries yet.' : 'No songs yet.'}<br>Waiting for inspiration…</div>`; return; }
+  for (const l of linesOf(song)) place(makeLine(l, true));
+}
+
+function penTo(span) {
+  const b = book.getBoundingClientRect(), r = span.getBoundingClientRect();
+  pen.style.left = (r.right - b.left) + 'px';
+  pen.style.top = (r.bottom - b.top) + 'px';
+}
+function keepVisible(el) {
+  const page = el.closest('.body');
+  const over = el.getBoundingClientRect().bottom - page.getBoundingClientRect().bottom;
+  if (over > 0) page.scrollTop += over + 4;
+}
+
+async function writeLine(el) {
+  keepVisible(el);
+  for (const span of el.querySelectorAll('.ch')) {
+    const ms = 1000 / speed();
+    span.style.transitionDuration = ms + 'ms';
+    span.classList.add('ink');
+    keepVisible(span);
+    penTo(span);
+    const c = span.textContent;
+    const endOfWord = span === span.parentElement.lastElementChild;
+    await sleep((/[,.!?;:]/.test(c) ? ms * 3 : ms * (0.7 + Math.random() * 0.6)) + (endOfWord ? ms * .6 : 0));
+  }
+  await sleep(1000 / speed() * 6); // lifting the pen between lines
+}
+
+async function strike(el) {
+  keepVisible(el);
+  const ms = Math.max(250, el.textContent.length * 1000 / speed() / 4);
+  el.style.setProperty('--strike', ms + 'ms');
+  const last = el.querySelector('.ch:last-child');
+  if (last) penTo(last);
+  el.classList.add('struck');
+  await sleep(ms + 300);
+}
+
+function diff(a, b) {
+  const n = a.length, m = b.length, t = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) t[i][j] = a[i].text === b[j].text ? t[i + 1][j + 1] + 1 : Math.max(t[i + 1][j], t[i][j + 1]);
+  const ops = []; let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i].text === b[j].text) { ops.push({ op: 'keep', l: b[j] }); i++; j++; }
+    else if (t[i + 1][j] >= t[i][j + 1]) ops.push({ op: 'del', l: a[i++] });
+    else ops.push({ op: 'add', l: b[j++] });
+  }
+  while (i < n) ops.push({ op: 'del', l: a[i++] });
+  while (j < m) ops.push({ op: 'add', l: b[j++] });
+  return ops;
+}
+
+function flip() { const p = $('R0'); p.classList.remove('flip'); void p.offsetWidth; p.classList.add('flip'); return sleep(700); }
+function upsert(song) {
+  const i = songs.findIndex((s) => s.id === song.id);
+  if (i >= 0) songs[i] = song; else songs.push(song);
+  index = songs.findIndex((s) => s.id === song.id);
+}
+function setStatus(text) { $('status').textContent = text; }
+
+async function animateWrite(song) {
+  upsert(song);
+  await flip();
+  clear(song);
+  setStatus('Amy is writing…');
+  pen.classList.remove('hidden', 'thinking');
+  const els = linesOf(song).map((l) => { const el = makeLine(l, false); place(el); return el; });
+  for (const el of els) await writeLine(el);
+}
+
+async function animateRevise(song, before) {
+  upsert(song);
+  await flip();
+  clear(song);
+  setStatus('Amy is revising…');
+  pen.classList.remove('hidden', 'thinking');
+  const ops = diff(linesOf({ ...song, ...before }), linesOf(song));
+  const els = ops.map((o) => { const el = makeLine(o.l, o.op !== 'add'); if (o.op === 'add') el.classList.add('added'); place(el); return { ...o, el }; });
+  for (const o of els) {
+    if (o.op === 'del') await strike(o.el);
+    else if (o.op === 'add') await writeLine(o.el);
+  }
+}
+
+async function run() {
+  if (busy) return;
+  busy = true;
+  while (queue.length) {
+    const e = queue.shift();
+    try {
+      if (e.type === 'start') { pen.classList.remove('hidden'); pen.classList.add('thinking'); pen.style.left = '75%'; pen.style.top = '30%'; setStatus(BOOK === 'journal' ? 'Amy is looking something up…' : e.mode === 'revise' ? 'Amy is rereading a song…' : 'Amy is thinking up a song…'); continue; }
+      if (e.type === 'write') await animateWrite(e.item);
+      if (e.type === 'revise') await animateRevise(e.item, e.before);
+      setStatus(`“${e.item.title}”`);
+      await sleep(800);
+    } catch (err) { console.error(err); }
+  }
+  if (!pen.classList.contains('thinking')) pen.classList.add('hidden');
+  busy = false;
+}
+
+function go(d) {
+  if (busy || !songs.length) return;
+  index = (index + d + songs.length) % songs.length;
+  flip().then(() => { showStatic(songs[index]); setStatus(`“${songs[index].title}”`); });
+}
+$('prev').onclick = () => go(-1);
+$('next').onclick = () => go(1);
+$('replay').onclick = () => { if (songs[index]) { queue.push({ type: 'write', item: songs[index] }); run(); } };
+
+setStatus(NAME);
+fetch('/api/book/' + BOOK).then((r) => r.json()).then((list) => {
+  songs = list;
+  const wanted = WANT ? songs.findIndex((s) => String(s.id) === WANT) : -1;
+  index = wanted >= 0 ? wanted : Math.max(0, songs.length - 1);
+  showStatic(songs[index]);
+  if (songs[index]) setStatus(`“${songs[index].title}”`);
+});
+const events = new EventSource('/api/book/events');
+events.onmessage = (m) => { const e = JSON.parse(m.data); if (e.book !== BOOK) return; queue.push(e); run(); };
+</script>
+</body>
+</html>

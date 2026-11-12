@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amy's Mind</title>
+<style>
+  :root{--bg:#05070d;--panel:#0b101b;--line:#172036;--text:#dfe6f5;--dim:#7d8aa8;--mute:#4a5570;
+    --c-hearing:#39c6ff;--c-intake:#8b5cf6;--c-pressure:#ff5c8a;--c-feelings:#ffb347;--c-memory:#2dd4bf;--c-curiosity:#f472b6;--c-tools:#a3e635;--c-voice:#fb7185;--c-body:#60a5fa;--c-presence:#c084fc;--c-architect:#f59e0b;--c-errors:#ef4444;--c-thoughts:#e879f9;--c-intuition:#d946ef;--c-taste:#34d399;--c-sleep:#64748b;}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.4 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+  .grid{display:grid;grid-template-columns:290px 1fr 330px;grid-template-rows:46px 1fr 140px;height:100vh;gap:8px;padding:8px}
+  header{grid-column:1/4;display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  header h1{font-size:14px;margin:0;letter-spacing:.14em;text-transform:uppercase;color:#fff;font-weight:600}
+  header .stat{color:var(--dim);font-variant-numeric:tabular-nums}
+  header .stat b{color:var(--text)}
+  header .live{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--dim)}
+  header .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:hidden;position:relative}
+  .panel h2{margin:0 0 8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  #left{overflow:auto}
+  .bucket{display:grid;grid-template-columns:92px 1fr 34px;align-items:center;gap:8px;margin:0 0 6px;font-size:12px}
+  .bucket .name{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bucket .bar{position:relative;height:12px;background:#0f1626;border-radius:6px;overflow:hidden}
+  .bucket .fill{position:absolute;inset:0 auto 0 0;border-radius:6px;background:linear-gradient(90deg,var(--c-pressure),#ff9ab6);transition:width .3s linear}
+  .bucket .thr{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.6}
+  .bucket .spark{position:absolute;inset:0;pointer-events:none}
+  .bucket .val{text-align:right;font-variant-numeric:tabular-nums}
+  .bucket.feel .fill{background:linear-gradient(90deg,var(--c-feelings),#ffd38a)}
+  .bucket.fired .bar{box-shadow:0 0 0 2px #fff inset,0 0 18px var(--c-pressure)}
+  .group{margin:10px 0 6px;color:var(--mute);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+  #center{padding:0;background:radial-gradient(900px 600px at 50% 45%,#0b1222 0%,#05070d 70%)}
+  #gl{width:100%;height:100%;display:block}
+  #center .caption{position:absolute;left:14px;top:12px;color:var(--dim);font-size:11px;max-width:55%;pointer-events:none}
+  #center .caption b{display:block;color:#fff;font-weight:600;font-size:13px;letter-spacing:.06em}
+  #center .legend{position:absolute;right:12px;top:12px;display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:10px;color:var(--dim);pointer-events:none}
+  #center .legend span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  #center .legend span.on{color:#fff}
+  #center .hint{position:absolute;left:14px;bottom:10px;color:var(--mute);font-size:10px;pointer-events:none}
+  #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  #labels .lab{position:absolute;transform:translate(-50%,-140%);font-size:10px;color:#fff;background:rgba(5,7,13,.55);border:1px solid var(--c);border-radius:6px;padding:1px 6px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 0 12px var(--c);transition:opacity .4s}
+  #right{display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .waves canvas{width:100%;height:50px;display:block;background:#080d18;border-radius:8px;margin-bottom:6px}
+  .waves .lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:2px}
+  #hearing{flex:1;overflow:auto}
+  .line{padding:6px 8px;border-left:2px solid var(--c-hearing);background:#080d18;border-radius:0 8px 8px 0;margin-bottom:6px}
+  .line .who{color:var(--c-hearing);font-size:11px}
+  .line .chips{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px}
+  .chip{font-size:10px;padding:1px 6px;border-radius:9px;background:#1b1535;color:#c4b5fd;border:1px solid #3b2d6e}
+  .chip.hot{background:#3b1d2b;color:#ffb3c7;border-color:#7a2d45}
+  #ticker{grid-column:1/4;overflow:hidden}
+  #ticker .rows{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px;font-size:11px;font-variant-numeric:tabular-nums}
+  #ticker .ev{display:flex;gap:8px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #ticker .ev .t{color:var(--mute)}
+  #ticker .ev .k{color:var(--c);min-width:72px}
+  #ticker .ev .m{color:var(--text);overflow:hidden;text-overflow:ellipsis}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+</head>
+<body>
+<div class="grid">
+  <header>
+    <h1>Amy's Mind</h1>
+    <span class="stat">pressure <b id="total">–</b></span>
+    <span class="stat">last want <b id="lastWant">–</b></span>
+    <span class="stat">lines/min <b id="lpm">0</b></span>
+    <span class="stat">tool calls/min <b id="tpm">0</b></span>
+    <span class="stat">firing <b id="fpm">0</b>/min</span>
+    <span class="live"><span class="dot" id="dot"></span><span id="conn">connecting</span></span>
+  </header>
+  <section class="panel" id="left"><h2>Buckets</h2><div id="buckets"></div></section>
+  <section class="panel" id="center">
+    <canvas id="gl"></canvas>
+    <div class="caption"><b id="capTitle">quiet</b><span id="capText">nothing fires unless something happened</span></div>
+    <div class="legend" id="legend"></div>
+    <div class="hint">drag to turn · wheel to zoom · <span id="knowCount">0</span> things she knows, growing · <a href="mind-graph.html" style="color:inherit">her knowledge graph ↗</a></div>
+    <div id="labels"></div>
+  </section>
+  <section class="panel" id="right">
+    <div class="waves">
+      <h2>Frequencies</h2>
+      <div class="lbl"><span>what she hears (lines)</span><span id="w1v"></span></div><canvas id="w1"></canvas>
+      <div class="lbl"><span>intake energy (what it does to her)</span><span id="w2v"></span></div><canvas id="w2"></canvas>
+      <div class="lbl"><span>her activity (tools, thoughts, wants)</span><span id="w3v"></span></div><canvas id="w3"></canvas>
+    </div>
+    <div id="hearing"><h2>Hearing</h2><div id="lines"></div></div>
+  </section>
+  <section class="panel" id="ticker"><h2>Everything, as it happens</h2><div class="rows" id="rows"></div></section>
+</div>
+<script type="module">
+import * as THREE from 'three';
+const css=(v)=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+// ---------- the regions of her mind, placed in a brain volume (x: left-right, y: up, z: front-back) ----------
+const REGIONS={
+  hearing:{label:'Hearing',p:[-1.05,-0.05,0.0]}, intake:{label:'Intake',p:[-0.55,0.25,0.35]}, memory:{label:'Memory',p:[-0.55,-0.35,-0.35]},
+  curiosity:{label:'Curiosity',p:[-0.15,0.65,0.55]}, pressure:{label:'Pressure',p:[0,0.05,0.1]}, feelings:{label:'Feelings',p:[0.45,0.3,0.4]},
+  taste:{label:'Taste',p:[-0.25,-0.6,0.3]}, intuition:{label:'Intuition',p:[0.35,-0.3,-0.3]}, thoughts:{label:'Thoughts',p:[0.1,0.7,-0.3]},
+  tools:{label:'Hands',p:[0.95,-0.1,-0.35]}, voice:{label:'Voice',p:[1.0,0.05,0.4]}, body:{label:'Body',p:[0.55,0.6,-0.15]},
+  presence:{label:'Presence',p:[-0.7,0.6,-0.1]}, architect:{label:'Architect',p:[0.7,-0.5,0.3]}, sleep:{label:'Sleep',p:[-0.2,-0.55,-0.75]}, errors:{label:'Faults',p:[0.25,-0.75,-0.6]},
+};
+const AXONS=[['hearing','intake'],['intake','pressure'],['intake','feelings'],['intake','memory'],['pressure','feelings'],['pressure','voice'],['pressure','tools'],['pressure','curiosity'],['curiosity','memory'],['curiosity','voice'],['memory','voice'],['feelings','body'],['feelings','voice'],['taste','feelings'],['hearing','taste'],['hearing','intuition'],['intuition','voice'],['intuition','memory'],['thoughts','pressure'],['thoughts','memory'],['tools','voice'],['tools','memory'],['presence','pressure'],['presence','hearing'],['architect','tools'],['architect','feelings'],['sleep','pressure'],['errors','tools'],['body','voice'],['errors','voice']];
+const KEYS=Object.keys(REGIONS);
+const colorOf={};for(const k of KEYS)colorOf[k]=new THREE.Color(css(`--c-${k}`));
+// ---------- neurons: a cortex-weighted cloud inside two hemispheres + cerebellum, each owned by the nearest region ----------
+const N=3400;
+const rnd=(()=>{let s=1337;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};})();
+function sample(){for(;;){const x=(rnd()*2-1)*1.3,y=(rnd()*2-1)*1.0,z=(rnd()*2-1)*1.1;
+  const hemi=(cx)=>((x-cx)/0.72)**2+((y-0.05)/0.78)**2+(z/1.0)**2;const d=Math.min(hemi(-0.55),hemi(0.55));const cb=((x)/0.5)**2+((y+0.65)/0.3)**2+((z+0.65)/0.35)**2;
+  if(d<1||cb<1){const r=Math.sqrt(Math.min(d,cb));if(rnd()<0.25+0.75*r*r)return[x,y,z];}}}
+const pos=new Float32Array(N*3),col=new Float32Array(N*3),base=new Float32Array(N),act=new Float32Array(N),size=new Float32Array(N),owner=new Uint8Array(N);
+const byRegion={};for(const k of KEYS)byRegion[k]=[];
+for(let i=0;i<N;i++){const [x,y,z]=sample();pos[i*3]=x;pos[i*3+1]=y;pos[i*3+2]=z;let best=0,bd=1e9;KEYS.forEach((k,j)=>{const p=REGIONS[k].p;const d=(x-p[0])**2+(y-p[1])**2+(z-p[2])**2;if(d<bd){bd=d;best=j;}});owner[i]=best;byRegion[KEYS[best]].push(i);const c=colorOf[KEYS[best]];col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;base[i]=0.05;size[i]=1+rnd()*1.2;}
+// hubs: the neuron nearest each region centre
+const hub={};for(const k of KEYS){const p=REGIONS[k].p;let b=-1,bd=1e9;for(const i of byRegion[k]){const d=(pos[i*3]-p[0])**2+(pos[i*3+1]-p[1])**2+(pos[i*3+2]-p[2])**2;if(d<bd){bd=d;b=i;}}hub[k]=b;}
+// ---------- dendrites: k nearest neighbours within a region (grid hashed), axons: nearest cross pairs between wired regions ----------
+const adj=Array.from({length:N},()=>[]);const segs=[];const segOf=[];
+const cell=0.16,grid=new Map();const key=(x,y,z)=>`${Math.floor(x/cell)},${Math.floor(y/cell)},${Math.floor(z/cell)}`;
+for(let i=0;i<N;i++){const k=key(pos[i*3],pos[i*3+1],pos[i*3+2]);(grid.get(k)||grid.set(k,[]).get(k)).push(i);}
+function link(a,b,kind){if(a===b||adj[a].includes(b))return;adj[a].push(b);adj[b].push(a);segs.push(a,b);segOf.push(kind);}
+for(let i=0;i<N;i++){const cx=Math.floor(pos[i*3]/cell),cy=Math.floor(pos[i*3+1]/cell),cz=Math.floor(pos[i*3+2]/cell);const near=[];
+  for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)for(let dz=-1;dz<=1;dz++){const g=grid.get(`${cx+dx},${cy+dy},${cz+dz}`);if(g)for(const j of g)if(j!==i&&owner[j]===owner[i]){const d=(pos[i*3]-pos[j*3])**2+(pos[i*3+1]-pos[j*3+1])**2+(pos[i*3+2]-pos[j*3+2])**2;near.push([d,j]);}}
+  near.sort((a,b)=>a[0]-b[0]);for(const [,j] of near.slice(0,3))link(i,j,0);}
+const axonSegs=[];
+for(const [a,b] of AXONS){const A=byRegion[a],B=byRegion[b];const pairs=[];for(let s=0;s<140;s++){const i=A[Math.floor(rnd()*A.length)],j=B[Math.floor(rnd()*B.length)];const d=(pos[i*3]-pos[j*3])**2+(pos[i*3+1]-pos[j*3+1])**2+(pos[i*3+2]-pos[j*3+2])**2;pairs.push([d,i,j]);}
+  pairs.sort((x,y)=>x[0]-y[0]);for(const [,i,j] of pairs.slice(0,5)){link(i,j,1);axonSegs.push({a,b,i,j});}}
+// ---------- three.js ----------
+const canvas=document.getElementById('gl');const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(2,devicePixelRatio));
+const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(42,1,0.1,50);camera.position.set(0,0.3,3.6);
+const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.setAttribute('aBase',new THREE.BufferAttribute(base,1));geo.setAttribute('aAct',new THREE.BufferAttribute(act,1));geo.setAttribute('aSize',new THREE.BufferAttribute(size,1));
+const vert=`attribute float aBase;attribute float aAct;attribute float aSize;varying float vI;varying vec3 vC;uniform float uScale;void main(){vI=clamp(aBase+aAct,0.0,1.6);vC=color;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=(aSize*(2.6+vI*6.0))*uScale/-mv.z;gl_Position=projectionMatrix*mv;}`;
+const frag=`varying float vI;varying vec3 vC;void main(){vec2 d=gl_PointCoord-0.5;float r=length(d);if(r>0.5)discard;float core=smoothstep(0.5,0.0,r);float a=core*core*(0.42+vI*0.9);vec3 c=mix(vC,vec3(1.0),vI*0.55);gl_FragColor=vec4(c*a*(1.0+vI*1.6),a);}`;
+const mat=new THREE.ShaderMaterial({vertexShader:vert,fragmentShader:frag,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uScale:{value:1}}});
+const points=new THREE.Points(geo,mat);scene.add(points);
+// Fibers, not wires: every dendrite and axon is a curved strand (a bent bezier with a slow wobble), built
+// once as a polyline. Dendrites get 4 pieces, the long axons 10.
+function perps(A,B){const dx=B[0]-A[0],dy=B[1]-A[1],dz=B[2]-A[2];let ux=-dy,uy=dx,uz=0;let ul=Math.hypot(ux,uy,uz);if(ul<1e-4){ux=0;uy=-dz;uz=dy;ul=Math.hypot(ux,uy,uz)||1;}ux/=ul;uy/=ul;uz/=ul;let vx=dy*uz-dz*uy,vy=dz*ux-dx*uz,vz=dx*uy-dy*ux;const vl=Math.hypot(vx,vy,vz)||1;vx/=vl;vy/=vl;vz/=vl;return{dx,dy,dz,len:Math.hypot(dx,dy,dz)||1,u:[ux,uy,uz],v:[vx,vy,vz]};}
+function strand(A,B,n,seed){const P=perps(A,B);let s=seed>>>0;const r=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296-0.5;};const b1=r()*P.len*0.5,b2=r()*P.len*0.5,w=r()*P.len*0.12,ph=r()*6.28;const out=[];
+  for(let i=0;i<=n;i++){const t=i/n;const bez=4*t*(1-t);const wob=Math.sin(t*Math.PI*2+ph)*Math.sin(t*Math.PI)*w;out.push([A[0]+P.dx*t+P.u[0]*(b1*bez+wob)+P.v[0]*b2*bez,A[1]+P.dy*t+P.u[1]*(b1*bez+wob)+P.v[1]*b2*bez,A[2]+P.dz*t+P.u[2]*(b1*bez+wob)+P.v[2]*b2*bez]);}return out;}
+const linkStart=[],linkCount=[];let total=0;for(let l=0;l<segs.length/2;l++)total+=(segOf[l]?10:4)*2;
+const lpos=new Float32Array(total*3),lcol=new Float32Array(total*3),lact=new Float32Array(total),lkind=new Float32Array(total);
+{let v=0;for(let l=0;l<segs.length/2;l++){const a=segs[l*2],b=segs[l*2+1],n=segOf[l]?10:4;const pts=strand([pos[a*3],pos[a*3+1],pos[a*3+2]],[pos[b*3],pos[b*3+1],pos[b*3+2]],n,a*7919+b*104729);linkStart[l]=v;linkCount[l]=n*2;
+  for(let i=0;i<n;i++){for(const p of [pts[i],pts[i+1]]){lpos[v*3]=p[0];lpos[v*3+1]=p[1];lpos[v*3+2]=p[2];const src=i<n/2?a:b;lcol[v*3]=col[src*3];lcol[v*3+1]=col[src*3+1];lcol[v*3+2]=col[src*3+2];lkind[v]=segOf[l];v++;}}}}
+const lgeo=new THREE.BufferGeometry();lgeo.setAttribute('position',new THREE.BufferAttribute(lpos,3));lgeo.setAttribute('color',new THREE.BufferAttribute(lcol,3));lgeo.setAttribute('aAct',new THREE.BufferAttribute(lact,1));lgeo.setAttribute('aKind',new THREE.BufferAttribute(lkind,1));
+// Connections stay fibers: they warm a little in their own colour when a signal is on them, never to
+// white, never bright. The travelling bolt is the flash; a straight line lighting up beside it was the
+// "straight shot" that kept showing.
+const lmat=new THREE.ShaderMaterial({vertexShader:`attribute float aAct;attribute float aKind;varying float vA;varying vec3 vC;void main(){vA=min(aAct,0.35);vC=color;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,fragmentShader:`varying float vA;varying vec3 vC;void main(){float a=0.10+vA*0.45;gl_FragColor=vec4(vC*(0.7+vA*1.2),a);}`,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+scene.add(new THREE.LineSegments(lgeo,lmat));
+// signals travelling along axons
+const MAXS=400;const spos=new Float32Array(MAXS*3),scol=new Float32Array(MAXS*3);const sparks=[];
+const sgeo=new THREE.BufferGeometry();sgeo.setAttribute('position',new THREE.BufferAttribute(spos,3));sgeo.setAttribute('color',new THREE.BufferAttribute(scol,3));sgeo.setDrawRange(0,0);
+const smat=new THREE.ShaderMaterial({vertexShader:`uniform float uScale;varying vec3 vC;void main(){vC=color;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=3.2*uScale/-mv.z;gl_Position=projectionMatrix*mv;}`,fragmentShader:`varying vec3 vC;void main(){float r=length(gl_PointCoord-0.5);if(r>0.5)discard;float a=smoothstep(0.5,0.0,r);gl_FragColor=vec4(mix(vC,vec3(1.0),0.6)*a*2.0,a);}`,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uScale:{value:1}}});
+scene.add(new THREE.Points(sgeo,smat));
+// lightning: each signal walks a jagged path that re-jitters as it goes; the bolt is drawn behind the head and flickers
+const BOLTCAP=MAXS*8;const bpos=new Float32Array(BOLTCAP*2*3),bcol=new Float32Array(BOLTCAP*2*3),bact=new Float32Array(BOLTCAP*2),bkind=new Float32Array(BOLTCAP*2);
+const bgeo=new THREE.BufferGeometry();bgeo.setAttribute('position',new THREE.BufferAttribute(bpos,3));bgeo.setAttribute('color',new THREE.BufferAttribute(bcol,3));bgeo.setAttribute('aAct',new THREE.BufferAttribute(bact,1));bgeo.setAttribute('aKind',new THREE.BufferAttribute(bkind,1));bgeo.setDrawRange(0,0);
+const bmat=new THREE.ShaderMaterial({vertexShader:`attribute float aAct;varying float vA;varying vec3 vC;void main(){vA=aAct;vC=color;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,fragmentShader:`varying float vA;varying vec3 vC;void main(){gl_FragColor=vec4(mix(vC,vec3(1.0),0.5)*vA*2.2,vA);}`,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+scene.add(new THREE.LineSegments(bgeo,bmat));
+function boltPath(A,B,seed){const n=7,out=[];const dx=B[0]-A[0],dy=B[1]-A[1],dz=B[2]-A[2];const len=Math.hypot(dx,dy,dz)||1;
+  // two perpendiculars to the line, so the kinks go sideways in 3D
+  let ux=-dy,uy=dx,uz=0;let ul=Math.hypot(ux,uy,uz);if(ul<1e-4){ux=0;uy=-dz;uz=dy;ul=Math.hypot(ux,uy,uz)||1;}ux/=ul;uy/=ul;uz/=ul;const vx=dy*uz-dz*uy,vy=dz*ux-dx*uz,vz=dx*uy-dy*ux;const vl=Math.hypot(vx,vy,vz)||1;
+  let s=seed>>>0;const rnd2=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296-0.5;};
+  for(let i=0;i<=n;i++){const u=i/n;const amp=(i===0||i===n)?0:len*0.09*Math.sin(u*Math.PI);const a=rnd2()*amp,b=rnd2()*amp;out.push([A[0]+dx*u+ux*a+vx/vl*b,A[1]+dy*u+uy*a+vy/vl*b,A[2]+dz*u+uz*a+vz/vl*b]);}return out;}
+function alongPath(path,u){const seg=Math.min(path.length-2,Math.floor(u*(path.length-1)));const f=u*(path.length-1)-seg;const a=path[seg],b=path[seg+1];return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f];}
+// ---------- her knowledge: a neuron per thing she has referenced, grown on first touch, linked to what it came with ----------
+// Facts she remembered, tools she called, people she heard, areas she wondered about, feelings she showed, signals
+// her intake read: each is a neuron inside its region. Touching it again brightens it, grows it, and sends sparks
+// down its links. Links form between things referenced together (a fact and who said it, a tool and who asked,
+// two things in the same minute), and strengthen each time they fire together. Kept in this browser (localStorage)
+// so the web keeps growing across reloads.
+const CAP=2200,LCAP=5000,KV=8; // knowledge links: 4 curved pieces = 8 vertices each
+const ipos=new Float32Array(CAP*3),icol=new Float32Array(CAP*3),iact=new Float32Array(CAP),ibase=new Float32Array(CAP),isize=new Float32Array(CAP);
+const lpos2=new Float32Array(LCAP*KV*3),lcol2=new Float32Array(LCAP*KV*3),lact2=new Float32Array(LCAP*KV),lkind2=new Float32Array(LCAP*KV);
+const items=new Map();const itemList=[];const ilinks=[];const linkKey=new Set();let lastTouched=[];
+function inside(x,y,z){const hemi=(cx)=>((x-cx)/0.72)**2+((y-0.05)/0.78)**2+(z/1.0)**2;return Math.min(hemi(-0.55),hemi(0.55))<0.98||(((x)/0.5)**2+((y+0.65)/0.3)**2+((z+0.65)/0.35)**2)<0.98;}
+function hash(s){let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619)>>>0;return h;}
+function place(region,label){const p=REGIONS[region].p;const h=hash(region+'|'+label);for(let t=0;t<24;t++){const a=((h>>(t%20))%360)/180*Math.PI+t*0.7,b=(((h>>3)+t*53)%180)/180*Math.PI,r=0.12+((h>>7)%100)/100*0.3;const x=p[0]+Math.sin(b)*Math.cos(a)*r,y=p[1]+Math.cos(b)*r*0.8,z=p[2]+Math.sin(b)*Math.sin(a)*r;if(inside(x,y,z))return[x,y,z];}return[p[0],p[1],p[2]];}
+function addItem(region,label,count=1){const key=region+'|'+label;if(items.has(key))return items.get(key);if(itemList.length>=CAP)return null;const idx=itemList.length;const [x,y,z]=place(region,label);ipos[idx*3]=x;ipos[idx*3+1]=y;ipos[idx*3+2]=z;const c=colorOf[region];icol[idx*3]=Math.min(1,c.r*0.75+0.25);icol[idx*3+1]=Math.min(1,c.g*0.75+0.25);icol[idx*3+2]=Math.min(1,c.b*0.75+0.25);
+  const it={idx,region,label,count,links:new Set()};items.set(key,it);itemList.push(it);ibase[idx]=0.08+Math.min(0.4,count*0.03);isize[idx]=1.4+Math.min(2.2,count*0.15);iact[idx]=0;igeo.setDrawRange(0,itemList.length);document.getElementById('knowCount').textContent=itemList.length;return it;}
+function addLink(a,b,strength=1){if(!a||!b||a===b)return;const k=a.idx<b.idx?`${a.idx}:${b.idx}`:`${b.idx}:${a.idx}`;let L=ilinks.find((l)=>l.key===k);if(L){L.strength=Math.min(3,L.strength+strength*0.4);}else{if(ilinks.length>=LCAP)return;L={key:k,a,b,strength};ilinks.push(L);a.links.add(b.idx);b.links.add(a.idx);const base0=(ilinks.length-1)*KV;const pts=strand([ipos[a.idx*3],ipos[a.idx*3+1],ipos[a.idx*3+2]],[ipos[b.idx*3],ipos[b.idx*3+1],ipos[b.idx*3+2]],KV/2,a.idx*7919+b.idx*104729);
+    let v=base0;for(let i=0;i<KV/2;i++){for(const p of [pts[i],pts[i+1]]){const it=i<KV/4?a:b;lpos2[v*3]=p[0];lpos2[v*3+1]=p[1];lpos2[v*3+2]=p[2];lcol2[v*3]=icol[it.idx*3];lcol2[v*3+1]=icol[it.idx*3+1];lcol2[v*3+2]=icol[it.idx*3+2];lkind2[v]=1;v++;}}ilgeo.setDrawRange(0,ilinks.length*KV);}return L;}
+// a reference: brighten, grow, link to what came with it, spark along every link
+function touch(region,label,withItems=[],amp=1){label=String(label??'').trim().slice(0,60);if(!label)return null;const fresh=!items.has(region+'|'+label);const it=addItem(region,label);if(!it)return null;if(!fresh){it.count++;ibase[it.idx]=0.08+Math.min(0.4,it.count*0.03);isize[it.idx]=1.4+Math.min(2.2,it.count*0.15);}
+  iact[it.idx]=Math.min(1.8,iact[it.idx]+(fresh?1.5:amp));
+  for(const o of withItems)if(o&&o!==it){addLink(it,o);}
+  // things referenced within the last 40 s belong together
+  const now=performance.now();lastTouched=lastTouched.filter((t)=>now-t.at<40_000);for(const t of lastTouched.slice(-3))if(t.it!==it&&t.it.region!==it.region||t.it!==it&&lastTouched.length<2)addLink(it,t.it,0.5);lastTouched.push({it,at:now});
+  for(const j of it.links){const o=itemList[j];sparks.push({fromP:[ipos[it.idx*3],ipos[it.idx*3+1],ipos[it.idx*3+2]],toP:[ipos[o.idx*3],ipos[o.idx*3+1],ipos[o.idx*3+2]],t:0,amp:0.5,c:colorOf[region],item:o});}
+  // and to its region's hub, so the region lights with it
+  const h=hub[region];sparks.push({fromP:[ipos[it.idx*3],ipos[it.idx*3+1],ipos[it.idx*3+2]],toP:[pos[h*3],pos[h*3+1],pos[h*3+2]],t:0,amp:0.4,c:colorOf[region],to:region});
+  label3d(it,fresh);saveItems();return it;}
+const igeo=new THREE.BufferGeometry();igeo.setAttribute('position',new THREE.BufferAttribute(ipos,3));igeo.setAttribute('color',new THREE.BufferAttribute(icol,3));igeo.setAttribute('aBase',new THREE.BufferAttribute(ibase,1));igeo.setAttribute('aAct',new THREE.BufferAttribute(iact,1));igeo.setAttribute('aSize',new THREE.BufferAttribute(isize,1));igeo.setDrawRange(0,0);
+const ilgeo=new THREE.BufferGeometry();ilgeo.setAttribute('position',new THREE.BufferAttribute(lpos2,3));ilgeo.setAttribute('color',new THREE.BufferAttribute(lcol2,3));ilgeo.setAttribute('aAct',new THREE.BufferAttribute(lact2,1));ilgeo.setAttribute('aKind',new THREE.BufferAttribute(lkind2,1));ilgeo.setDrawRange(0,0);
+// floating labels for what just fired
+const labelBox=document.getElementById('labels');const floating=[];
+function label3d(it,fresh){if(floating.length>=7){const old=floating.shift();old.el.remove();}const el=document.createElement('div');el.className='lab';el.style.setProperty('--c',css(`--c-${it.region}`));el.textContent=(fresh?'+ ':'')+it.label;labelBox.append(el);floating.push({it,el,t:0});}
+function projectLabels(dt){const r=canvas.getBoundingClientRect();const v=new THREE.Vector3();for(let i=floating.length-1;i>=0;i--){const f=floating[i];f.t+=dt;if(f.t>3.2){f.el.remove();floating.splice(i,1);continue;}v.set(ipos[f.it.idx*3],ipos[f.it.idx*3+1],ipos[f.it.idx*3+2]).project(camera);const x=(v.x*0.5+0.5)*r.width,y=(-v.y*0.5+0.5)*r.height;f.el.style.left=x+'px';f.el.style.top=y+'px';f.el.style.opacity=f.t>2.4?String(1-(f.t-2.4)/0.8):'1';}}
+// persistence in this browser
+let saveTimer=null;function saveItems(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{localStorage.setItem('mind-items',JSON.stringify({items:itemList.map((i)=>[i.region,i.label,i.count]),links:ilinks.map((l)=>[l.a.idx,l.b.idx,+l.strength.toFixed(2)])}));}catch{}},800);}
+function loadItems(){try{const s=JSON.parse(localStorage.getItem('mind-items')||'null');if(!s)return;for(const [r,l,c] of s.items)if(REGIONS[r])addItem(r,l,c);for(const [a,b,st] of s.links){const A=itemList[a],B=itemList[b];if(A&&B)addLink(A,B,st);}}catch{}}
+// what an event references, by region: the things she knows that this touched
+function references(e){const t=e.type,out=[];const sp=e.speaker&&typeof e.speaker==='string'?e.speaker:e.speaker?.name;
+  const who=sp?{region:'hearing',label:sp}:null;
+  if(t==='heard'&&who)out.push(who);
+  if(t==='remembered')for(const f of (e.facts||[]).slice(0,4))out.push({region:'memory',label:String(f).replace(/^[^:]{0,40}:\s*/,'').slice(0,60),with:who});
+  if(t==='tool-call')out.push({region:e.ok?'tools':'errors',label:`${e.tool}${e.action?' '+e.action:''}`,with:who});
+  if(t==='hands')for(const c of (e.calls||[]).slice(0,4))out.push({region:'tools',label:c});
+  if(t==='intake')for(const [k,v] of Object.entries(e))if(typeof v==='number'&&k!=='time'&&v>=0.4)out.push({region:'intake',label:k.replace(/_/g,' '),with:who,amp:v});
+  if(t==='curiosity')out.push({region:'curiosity',label:e.area??(e.wondering??e.asked??e.answered??e.dropped??'').slice(0,60),with:e.of?{region:'hearing',label:e.of}:who});
+  if(t==='listen'||t==='topic')for(const x of (e.topics||[e.topic]).filter(Boolean).slice(0,3))out.push({region:'curiosity',label:String(x).slice(0,50)});
+  if(t==='discovery')out.push({region:'tools',label:e.tool,with:{region:'feelings',label:'thrill'}});
+  if(t==='pressure'&&e.fired)out.push({region:'pressure',label:e.fired});
+  if(t==='pressure'&&e.uptake)out.push({region:'feelings',label:`uptake ${e.uptake}`,with:e.by?{region:'hearing',label:e.by}:null});
+  if(t==='pressure'&&e.home)out.push({region:'feelings',label:`home ${e.home}`});
+  if(t==='expression'&&typeof e.feelings==='string')for(const m of e.feelings.matchAll(/([a-z]+) 0?\.(\d)/g))if(+m[2]>=4)out.push({region:'feelings',label:m[1]});
+  if(t==='reaction')out.push({region:'taste',label:e.style,with:who});
+  if(t==='intuition')out.push({region:'intuition',label:(e.gut??e.repeated??'').slice(0,50),with:e.about?{region:'hearing',label:e.about}:who});
+  if(t==='thought')out.push({region:'thoughts',label:(e.topic??'').slice(0,50)});
+  if(t==='away')out.push({region:'presence',label:`${e.who} ${e.back?'back':'away'}`});if(t==='quiet-time')out.push({region:'presence',label:`quiet time with ${e.with}`});
+  if(t==='open-question')out.push({region:'presence',label:(e.nudged??e.dropped??'question').slice(0,50),with:e.to?{region:'hearing',label:e.to}:null});
+  if(t==='voice-guest')out.push({region:'presence',label:e.joined??e.left??'guest'});
+  if(t==='architect'||t==='doctor')out.push({region:'architect',label:`${t}: ${(e.task??e.status??'').slice(0,40)}`});
+  if(t==='replied')out.push({region:'voice',label:`reply ${new Date(e.time).toLocaleTimeString([],{hour12:false})}`,with:who});
+  if(t==='error')out.push({region:'errors',label:(e.where??'fault').slice(0,40)});
+  return out;}
+function touchAll(e){const refs=references(e);const made=[];for(const r of refs){const w=r.with?addItem(r.with.region,r.with.label):null;if(w&&r.with.region==='hearing')iact[w.idx]=Math.min(1.5,iact[w.idx]+0.4);const it=touch(r.region,r.label,w?[w]:[],r.amp??1);if(it)made.push(it);}
+  for(let i=1;i<made.length;i++)addLink(made[0],made[i],0.5);}
+
+// ---------- firing: a wave through a region's dendrites, then signals down its axons ----------
+const waves=[]; // {front:Set, seen:Set, amp, color}
+const regionGlow={};for(const k of KEYS)regionGlow[k]=0;
+function fireRegion(k,amp=1,from=null){const h=hub[k];if(h==null)return;regionGlow[k]=Math.min(1.5,regionGlow[k]+amp);waves.push({front:[h],seen:new Set([h]),amp,region:k,left:amp>0.6?7:4});
+  if(from===null)for(const ax of axonSegs){if(ax.a===k||ax.b===k){const to=ax.a===k?ax.b:ax.a;if(to===from)continue;sparks.push({i:ax.a===k?ax.i:ax.j,j:ax.a===k?ax.j:ax.i,t:0,to,amp,c:colorOf[k]});}}
+  setLegend(k);}
+function stepWaves(){for(let w=waves.length-1;w>=0;w--){const wv=waves[w];const next=[];for(const i of wv.front){act[i]=Math.min(1.6,act[i]+wv.amp);for(const j of adj[i])if(owner[j]===owner[i]&&!wv.seen.has(j)){wv.seen.add(j);next.push(j);}}
+  wv.front=next;wv.amp*=0.82;if(--wv.left<=0||!next.length||wv.amp<0.08)waves.splice(w,1);}}
+let waveClock=0;
+function update(dt){waveClock+=dt;if(waveClock>0.045){waveClock=0;stepWaves();}
+  for(let i=0;i<N;i++){if(act[i]>0)act[i]=Math.max(0,act[i]-dt*1.1);}
+  for(const k of KEYS)regionGlow[k]=Math.max(0,regionGlow[k]-dt*0.8);
+  // baseline: pressure neurons glow with the buckets, feelings neurons with the feelings
+  if(snapshot){const b=snapshot.buckets||{},feel=new Set(snapshot.feelings||[]);const want=Object.keys(b).filter((x)=>!feel.has(x)),fl=Object.keys(b).filter((x)=>feel.has(x));
+    assignBase('pressure',want,b);assignBase('feelings',fl,b);}
+  // lines light with their endpoints
+  for(let l=0;l<linkStart.length;l++){const a=segs[l*2],b=segs[l*2+1];const v=Math.max(act[a],act[b])*(segOf[l]?1.0:0.7);const s0=linkStart[l],c=linkCount[l];for(let k=0;k<c;k++)lact[s0+k]=v;}
+  // knowledge neurons decay; their links light with their endpoints and with how often they've fired together
+  for(let i=0;i<itemList.length;i++)if(iact[i]>0)iact[i]=Math.max(0,iact[i]-dt*0.9);
+  for(let l=0;l<ilinks.length;l++){const L=ilinks[l];const v=Math.max(iact[L.a.idx],iact[L.b.idx])*0.9;for(let k=0;k<KV;k++)lact2[l*KV+k]=v;}
+  // sparks travel: along axons (region to region) or along knowledge links (thing to thing)
+  let n=0,bn=0;const flick=performance.now();
+  for(let s=sparks.length-1;s>=0;s--){const sp=sparks[s];sp.t+=dt*1.25;if(sp.t>=1){sparks.splice(s,1);if(sp.to)fireRegion(sp.to,sp.amp*0.45,sp.to);if(sp.item)iact[sp.item.idx]=Math.min(1.5,iact[sp.item.idx]+sp.amp);continue;}
+    const A=sp.fromP??[pos[sp.i*3],pos[sp.i*3+1],pos[sp.i*3+2]],B=sp.toP??[pos[sp.j*3],pos[sp.j*3+1],pos[sp.j*3+2]];
+    // the bolt finds its own way: a fresh jagged path every ~90 ms, so it flickers as it travels
+    if(!sp.path||flick-(sp.jit??0)>90){sp.seed=(sp.seed??(flick*7919)|0)+1;sp.path=boltPath(A,B,sp.seed);sp.jit=flick;}
+    const head=alongPath(sp.path,sp.t);
+    // the head and a fading trail behind it
+    for(let k=0;k<5&&n<MAXS;k++){const u=Math.max(0,sp.t-k*0.035);const p=alongPath(sp.path,u);const f=1-k*0.18;spos[n*3]=p[0];spos[n*3+1]=p[1];spos[n*3+2]=p[2];scol[n*3]=sp.c.r*f;scol[n*3+1]=sp.c.g*f;scol[n*3+2]=sp.c.b*f;n++;}
+    // the bolt itself, from the source to the head, brightest near the head and fading toward the source
+    const segs2=sp.path.length-1,upto=sp.t*segs2;for(let k=0;k<segs2&&bn<BOLTCAP;k++){if(k>upto)break;const a=sp.path[k],b=k+1>upto?head:sp.path[k+1];const fade=(0.25+0.75*(k/segs2))*(1-sp.t*0.4)*sp.amp*(0.7+0.3*Math.sin(flick/23+k));const o=bn*2;bpos[o*3]=a[0];bpos[o*3+1]=a[1];bpos[o*3+2]=a[2];bpos[o*3+3]=b[0];bpos[o*3+4]=b[1];bpos[o*3+5]=b[2];for(const q of [o,o+1]){bcol[q*3]=sp.c.r;bcol[q*3+1]=sp.c.g;bcol[q*3+2]=sp.c.b;bact[q]=Math.max(0,Math.min(1,fade));}bn++;}}
+  sgeo.setDrawRange(0,n);sgeo.attributes.position.needsUpdate=true;sgeo.attributes.color.needsUpdate=true;
+  bgeo.setDrawRange(0,bn*2);bgeo.attributes.position.needsUpdate=true;bgeo.attributes.color.needsUpdate=true;bgeo.attributes.aAct.needsUpdate=true;
+  geo.attributes.aAct.needsUpdate=true;geo.attributes.aBase.needsUpdate=true;lgeo.attributes.aAct.needsUpdate=true;
+  igeo.attributes.aAct.needsUpdate=true;igeo.attributes.aBase.needsUpdate=true;igeo.attributes.aSize.needsUpdate=true;igeo.attributes.position.needsUpdate=true;igeo.attributes.color.needsUpdate=true;
+  ilgeo.attributes.aAct.needsUpdate=true;ilgeo.attributes.position.needsUpdate=true;ilgeo.attributes.color.needsUpdate=true;projectLabels(dt);}
+// each bucket owns a slice of the pressure region's neurons; its value is their resting glow
+function assignBase(region,keys,values){const ids=byRegion[region];if(!keys.length)return;const per=Math.floor(ids.length/keys.length)||1;keys.forEach((k,ki)=>{const v=Math.max(0,Math.min(1,+values[k]||0));for(let n=ki*per;n<Math.min(ids.length,(ki+1)*per);n++)base[ids[n]]=0.04+v*0.3;});}
+// ---------- events -> regions ----------
+function route(e){const t=e.type;
+  // Her own brain (no language model). A turn already arrives as heard, remembered, thought and replied, so the
+  // brain's own record of it only shows here when she couldn't read the line (Faults) or when her brain comes up.
+  if(t==='brain'){if(e.ready)return{at:'thoughts',note:e.message??'her brain is up',amp:0.8};if(e.skipped)return{at:'presence',note:e.message??'',amp:0.4};
+    const miss=e.not_understood||[];return miss.length?{at:'errors',note:`couldn't read: ${miss.map((m)=>m.text).join(' | ')}`,amp:1}:null;}
+  if(t==='heard')return{at:'hearing',note:`${e.speaker}: ${e.text??''}`,amp:1};
+  if(t==='intake'){const sig=Object.entries(e).filter(([k,v])=>typeof v==='number'&&k!=='time');return{at:'intake',note:sig.map(([k,v])=>`${k} ${v}`).join(', ')||'read: nothing notable',amp:0.6+Math.min(0.8,sig.reduce((s,[,v])=>s+v,0)*0.4)};}
+  if(t==='pressure'){if(e.fired)return{at:'pressure',note:`${e.fired} fired: ${e.want??''}`,amp:1.5,also:e.doing==='speak'?'voice':['build','research','goal-work','songwrite'].includes(e.doing)?'tools':null};
+    if(e.uptake||e.wanted||e.home||e.discovered)return{at:'feelings',note:e.uptake?`uptake ${e.uptake}`:e.wanted?'wanted':e.home?`home ${e.home}`:`discovered ${e.discovered}`,amp:0.9};
+    if(e.sound)return{at:'hearing',note:`sound calm ${e.calm} energy ${e.energy}`,amp:0.3};return{at:'pressure',note:e.message??(e.quiet?'quiet':e.clamp??'tick'),amp:0.4};}
+  if(t==='replied')return{at:'voice',note:e.text??'',amp:1.2};
+  if(t==='tool-call')return{at:e.ok?'tools':'errors',note:`${e.tool}${e.action?' '+e.action:''}${e.ok?'':' FAILED: '+(e.error??'')}`,amp:e.ok?0.9:1.3};
+  if(t==='hands')return{at:'tools',note:`hands: ${(e.calls||[]).join(', ')||'no tools'}`,amp:0.7};
+  if(t==='remembered'||t==='recall'||t==='memory-wiped'||t==='topic'||t==='listen')return{at:'memory',note:(e.facts||[]).join('; ')||e.message||t,amp:0.9};
+  if(t==='curiosity'||t==='question-forge'||t==='self-realize')return{at:'curiosity',note:e.wondering??e.asked??e.answered??e.dropped??e.aspect??t,amp:0.9};
+  if(t==='discovery')return{at:'feelings',note:`first use: ${e.tool}`,amp:1.1};
+  if(t==='intuition')return{at:'intuition',note:e.gut??e.repeated??e.cue??'',amp:0.8};
+  if(t==='reaction')return{at:'taste',note:`${e.style} at ${e.speaker}: ${e.why??''}`,amp:0.9};
+  if(t==='thought')return{at:'thoughts',note:e.topic??e.message??'',amp:1};
+  if(t==='expression'||t==='body'||t==='avatar')return{at:'body',note:e.feelings??e.message??'',amp:0.6};
+  if(t==='away'||t==='quiet-time'||t==='open-question'||t==='voice-guest'||t==='voice-join'||t==='voice-leave')return{at:'presence',note:Object.entries(e).filter(([k])=>!['type','time'].includes(k)).map(([k,v])=>`${k} ${v}`).join(', '),amp:0.9};
+  if(t==='architect'||t==='doctor')return{at:'architect',note:`${t} ${e.status??''}: ${e.task??''}`,amp:1};
+  if(t==='sleep'||t==='dream')return{at:'sleep',note:e.message??t,amp:0.8};
+  if(t==='error'||t==='failure')return{at:'errors',note:`${e.where??e.kind??''}: ${e.message??e.note??''}`,amp:1.4};
+  const fam=/avatar|body|outfit|look|view|dance|gesture|face|eye/.test(t)?'body':/voice|speech|tts|speak|say|talk|turn|interrupt|barge|floor/.test(t)?'voice':/memor|remember|recall|summar|consolid|profile|contact|kg|graph|journal|note/.test(t)?'memory':/tool|browser|file|project|build|workshop|music|image|generat|git|coder/.test(t)?'tools':/sleep|dream|rest|nap/.test(t)?'sleep':/presence|join|leave|guest|away|quiet|room/.test(t)?'presence':/curio|wonder|question|research|read|rss|explore|interest/.test(t)?'curiosity':/feel|emotion|mood|arousal|taste|reaction|joy|thrill/.test(t)?'feelings':/think|thought|reflect|intuit|realiz|ponder|self/.test(t)?'thoughts':/hear|listen|sound|transcri|stt|wake/.test(t)?'hearing':'pressure';
+  return{at:fam,note:`${t}: ${Object.entries(e).filter(([k])=>!['type','time'].includes(k)).map(([k,v])=>`${k} ${typeof v==='object'?JSON.stringify(v):v}`).join(', ').slice(0,120)}`,amp:0.6};}
+function fire(e){const r=route(e);if(!r)return;fireRegion(r.at,r.amp);if(r.also)setTimeout(()=>fireRegion(r.also,0.9),350);try{touchAll(e);}catch(err){console.warn('knowledge touch',err);}cap(REGIONS[r.at].label,r.note);tick(e,r);}
+let capTimer=null;function cap(title,text){document.getElementById('capTitle').textContent=title;document.getElementById('capText').textContent=String(text||'').slice(0,180);clearTimeout(capTimer);capTimer=setTimeout(()=>{document.getElementById('capTitle').textContent='quiet';document.getElementById('capText').textContent='nothing fires unless something happened';},8000);}
+const legend=document.getElementById('legend');legend.innerHTML=KEYS.map((k)=>`<span id="lg-${k}" style="--c:var(--c-${k})">${REGIONS[k].label}</span>`).join('');
+function setLegend(k){const el=document.getElementById(`lg-${k}`);el.classList.add('on');setTimeout(()=>el.classList.remove('on'),1500);}
+// ---------- camera: slow orbit, drag to turn, wheel to zoom ----------
+let yaw=0.25,pitch=0.12,dist=3.6,dragging=false,lx=0,ly=0,auto=true;
+canvas.addEventListener('pointerdown',(e)=>{dragging=true;auto=false;lx=e.clientX;ly=e.clientY;});addEventListener('pointerup',()=>dragging=false);
+addEventListener('pointermove',(e)=>{if(!dragging)return;yaw+=(e.clientX-lx)*0.006;pitch=Math.max(-1.2,Math.min(1.2,pitch+(e.clientY-ly)*0.006));lx=e.clientX;ly=e.clientY;});
+canvas.addEventListener('wheel',(e)=>{dist=Math.max(1.8,Math.min(7,dist+e.deltaY*0.002));},{passive:true});
+function resize(){const r=canvas.parentElement.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();const k=(r.height/150)*renderer.getPixelRatio();mat.uniforms.uScale.value=k;smat.uniforms.uScale.value=k;}
+addEventListener('resize',resize);resize();
+let last=performance.now();
+function loop(now){const dt=Math.min(0.1,(now-last)/1000);last=now;if(auto)yaw+=dt*0.12;
+  camera.position.set(Math.sin(yaw)*Math.cos(pitch)*dist,Math.sin(pitch)*dist+0.1,Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(0,0,0);
+  update(dt);renderer.render(scene,camera);drawWave('w1',wave.w1,css('--c-hearing'),'w1v');drawWave('w2',wave.w2,css('--c-intake'),'w2v');drawWave('w3',wave.w3,css('--c-tools'),'w3v');requestAnimationFrame(loop);}
+// ---------- buckets, waves, hearing, ticker ----------
+const DPR=Math.min(2,devicePixelRatio||1);let snapshot=null,hist={};const stamps={lines:[],acts:[],fired:[]};let intakeEnergy=[];const wave={w1:[],w2:[],w3:[]};
+const rate=(arr)=>{const now=Date.now();while(arr.length&&now-arr[0]>60_000)arr.shift();return arr.length;};
+function pushWave(){const now=Date.now();const win=(arr,ms)=>arr.filter((t)=>now-t<ms).length;wave.w1.push(win(stamps.lines,10_000));wave.w3.push(win(stamps.acts,10_000)+win(stamps.fired,10_000)*3);wave.w2.push(intakeEnergy.filter((x)=>now-x.at<10_000).reduce((s,x)=>s+x.v,0));for(const k in wave)if(wave[k].length>160)wave[k].shift();
+  document.getElementById('lpm').textContent=rate(stamps.lines);document.getElementById('tpm').textContent=rate(stamps.acts);document.getElementById('fpm').textContent=rate(stamps.fired);}
+function drawWave(id,data,color,label){const c=document.getElementById(id);const r=c.getBoundingClientRect();if(c.width!==Math.round(r.width*DPR)){c.width=r.width*DPR;c.height=r.height*DPR;}const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);x.clearRect(0,0,r.width,r.height);const max=Math.max(1,...data);x.lineWidth=1.6;x.strokeStyle=color;x.shadowBlur=10;x.shadowColor=color;x.beginPath();for(let i=0;i<data.length;i++){const v=data[i]/max;const px=i/159*r.width,py=r.height-5-v*(r.height-12);i?x.lineTo(px,py):x.moveTo(px,py);}x.stroke();x.shadowBlur=0;x.fillStyle=color;x.globalAlpha=.08;x.lineTo(r.width,r.height);x.lineTo(0,r.height);x.fill();x.globalAlpha=1;document.getElementById(label).textContent=data.length?data[data.length-1].toFixed(data===wave.w2?1:0):'';}
+function renderBuckets(){if(!snapshot)return;const feel=new Set(snapshot.feelings||[]);const thr=snapshot.thresholds||{};const keys=Object.keys(snapshot.buckets).sort((a,b)=>(feel.has(a)-feel.has(b))||a.localeCompare(b));const el=document.getElementById('buckets');let html='',group='';
+  for(const k of keys){const v=+snapshot.buckets[k]||0;const isF=feel.has(k);const g=isF?'feelings':'wants';if(g!==group){group=g;html+=`<div class="group">${g}</div>`;}(hist[k]??=[]).push(v);if(hist[k].length>120)hist[k].shift();const fired=snapshot.last_action&&snapshot.last_action.bucket===k&&Date.now()-snapshot.last_action.at<8000;
+    html+=`<div class="bucket ${isF?'feel':''} ${fired?'fired':''}" data-k="${k}"><span class="name" title="${k}">${k.replace(/_/g,' ')}</span><span class="bar"><span class="fill" style="width:${(v*100).toFixed(1)}%"></span>${!isF&&thr[k]!=null?`<span class="thr" style="left:${(thr[k]*100).toFixed(1)}%"></span>`:''}<canvas class="spark"></canvas></span><span class="val">${v.toFixed(2)}</span></div>`;}
+  el.innerHTML=html;for(const row of el.querySelectorAll('.bucket')){const k=row.dataset.k,c=row.querySelector('.spark'),r=c.getBoundingClientRect();c.width=r.width*DPR;c.height=r.height*DPR;const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);const d=hist[k];x.strokeStyle='rgba(255,255,255,.35)';x.lineWidth=1;x.beginPath();d.forEach((v,i)=>{const px=i/119*r.width,py=r.height-1-v*(r.height-2);i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();}
+  document.getElementById('total').textContent=`${snapshot.total} (cap ${snapshot.cap})`;const la=snapshot.last_action;document.getElementById('lastWant').textContent=la?`${la.bucket} ${Math.round((Date.now()-la.at)/60000)} min ago`:'none yet';}
+async function poll(){try{snapshot=await fetch('/api/pressure').then((r)=>r.json());renderBuckets();}catch{}finally{setTimeout(poll,300);}}
+const recentLines=[];
+function tick(e,r){const rows=document.getElementById('rows');const d=document.createElement('div');d.className='ev';d.style.setProperty('--c',`var(--c-${r.at})`);d.innerHTML=`<span class="t">${new Date(e.time).toLocaleTimeString([],{hour12:false})}</span><span class="k">${e.type}</span><span class="m"></span>`;d.querySelector('.m').textContent=r.note||'';rows.prepend(d);while(rows.children.length>33)rows.lastChild.remove();
+  if(e.type==='heard'){stamps.lines.push(e.time);hearLine(e);}
+  if(e.type==='intake'){const v=Object.entries(e).filter(([k,x])=>typeof x==='number'&&k!=='time').reduce((s,[,x])=>s+x,0);intakeEnergy.push({at:e.time,v});intakeEnergy=intakeEnergy.slice(-200);attachChips(e);}
+  if(['tool-call','hands','thought','intuition','reaction','curiosity','remembered'].includes(e.type))stamps.acts.push(e.time);
+  if(e.type==='pressure'&&e.fired)stamps.fired.push(e.time);}
+function hearLine(e){const box=document.getElementById('lines');const d=document.createElement('div');d.className='line';d.dataset.speaker=e.speaker;d.innerHTML=`<div class="who"></div><div class="txt"></div><div class="chips"></div>`;d.querySelector('.who').textContent=`${e.speaker} · ${new Date(e.time).toLocaleTimeString([],{hour12:false})}${e.ignored?' · overheard':''}`;d.querySelector('.txt').textContent=e.text||'';box.prepend(d);recentLines.unshift(d);while(box.children.length>10)box.lastChild.remove();recentLines.length=Math.min(recentLines.length,10);}
+function attachChips(e){const d=recentLines.find((x)=>x.dataset.speaker===e.speaker&&!x.dataset.read);if(!d)return;d.dataset.read='1';const chips=d.querySelector('.chips');for(const [k,v] of Object.entries(e)){if(typeof v!=='number'||k==='time')continue;const s=document.createElement('span');s.className='chip'+(['contempt','irritant','yelling','quiet'].includes(k)?' hot':'');s.textContent=`${k.replace(/_/g,' ')} ${v}`;chips.append(s);}}
+function connect(){const es=new EventSource('/api/events');const conn=document.getElementById('conn'),dot=document.getElementById('dot');es.onopen=()=>{conn.textContent='live';dot.style.background='#22c55e';};es.onerror=()=>{conn.textContent='reconnecting';dot.style.background='#ef4444';};
+  // the replayed history seeds her knowledge web quietly (no sparks); live events fire
+  let primed=false;setTimeout(()=>primed=true,800);es.onmessage=(m)=>{let e;try{e=JSON.parse(m.data);}catch{return;}if(!e.type||e.type==='context')return;if(!primed){const r=route(e);if(r){tick(e,r);try{for(const ref of references(e)){const w=ref.with?addItem(ref.with.region,ref.with.label):null;const it=addItem(ref.region,String(ref.label??'').trim().slice(0,60));if(it&&w)addLink(it,w,0.5);}}catch{}}return;}fire(e);};}
+// ---------- her body, live: the Studio stream carries her speech envelope (mouth, 40 ms frames) and her expressions ----------
+// Her mouth moving is motion; each frame of it beats the body cluster in step with the sound. Expressions
+// light the feelings she showed and the body with them. (Her blinks and gaze are computed inside the Studio
+// page itself and don't reach the server, so they can't fire here until that page reports them.)
+let mouthTimers=[];let blinkCount=0;
+function bodyBeat(open,i){const ids=byRegion.body;if(!ids.length)return;const steps=4+Math.floor(open*10);for(let k=0;k<steps;k++){const j=ids[(i*7+k*13)%ids.length];act[j]=Math.min(1.4,act[j]+open*0.9);}regionGlow.body=Math.min(1.2,regionGlow.body+open*0.3);}
+function liveBody(){const es=new EventSource('/api/avatar/live');let primed=false;es.onopen=()=>{primed=false;setTimeout(()=>primed=true,900);};es.onmessage=(m)=>{let e;try{e=JSON.parse(m.data);}catch{return;}
+  if(!primed){if(e.type==='view'&&e.view)addItem('body',`view ${e.view.frame}`);if(e.type==='appearance'&&e.appearance)addItem('body',`look ${e.appearance.character??'main'}`);return;} // the opening state replay seeds, it doesn't fire
+  if(e.type==='discord-speech'&&e.speech){const p=e.speech;if(p.type==='start'&&Array.isArray(p.frames)){for(const t of mouthTimers)clearTimeout(t);mouthTimers=[];const who=p.character&&p.character!=='main'?p.character:'her';touch('body',`${who==='her'?'mouth':who+' speaks'}`,[],0.8);touch('voice',`speaking ${new Date().toLocaleTimeString([],{hour12:false})}`,[],0.6);
+      p.frames.forEach((f,i)=>{const open=Math.max(0,Math.min(1,+f.open||0));if(open<0.12)return;mouthTimers.push(setTimeout(()=>bodyBeat(open,i),i*(p.frameMs||40)));});}
+    if(p.type==='stop'){for(const t of mouthTimers)clearTimeout(t);mouthTimers=[];}}
+  if(e.type==='expression'&&e.expression){const f=e.expression.feelings??e.expression;if(f&&typeof f==='object'){const hot=Object.entries(f).filter(([,v])=>+v>=0.3).sort((a,b)=>b[1]-a[1]).slice(0,3);if(hot.length){fireRegion('body',0.5);for(const [k,v] of hot)touch('feelings',k,[],+v);}}}
+  // her blinks and glances, reported by the Studio page: each one beats the body cluster (no label spam; every 12th blink leaves a mark)
+  if(e.type==='beat'&&Array.isArray(e.beats)){for(const b of e.beats){for(let k=0;k<b.n;k++){bodyBeat(b.kind==='blink'?0.45:0.3,(blinkCount++)+k*3);}if(b.kind==='blink'&&blinkCount%12===0)touch('body',`blink${b.character!=='main'?' ('+b.character+')':''}`,[],0.4);if(b.kind==='glance')touch('body','glance',[],0.25);}}
+  if(e.type==='view'&&e.view)touch('body',`view ${e.view.frame}`,[],0.5);
+  if(e.type==='appearance'&&e.appearance)touch('body',`look ${e.appearance.character??'main'}`,[],0.4);};}
+loadItems();liveBody();
+// the knowledge layer: points and links drawn with the same shaders as the brain itself
+scene.add(new THREE.Points(igeo,mat));
+// knowledge links rest almost invisible (hundreds converge on one person); they appear when they carry a signal
+const ilmat=lmat.clone();ilmat.fragmentShader=`varying float vA;varying vec3 vC;void main(){if(vA<0.01)discard;float a=vA*0.5;gl_FragColor=vec4(vC*(0.6+vA*1.2),a);}`;ilmat.needsUpdate=true;
+scene.add(new THREE.LineSegments(ilgeo,ilmat));
+setInterval(pushWave,500);poll();connect();requestAnimationFrame(loop);
+</script>
+</body>
+</html>

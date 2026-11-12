@@ -1,0 +1,16 @@
+node_modules/
+__pycache__/
+.pytest_cache/
+.env
+data/
+models/
+checkpoints/
+*.db
+*.db-wal
+*.db-shm
+*.zip
+corpus/*.jsonl
+corpus/*.npy
+corpus/results/
+corpus/tags*
+.companions-*

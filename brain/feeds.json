@@ -1,0 +1,17 @@
+[
+  { "name": "BBC World", "category": "world", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+  { "name": "NPR News", "category": "world", "url": "https://feeds.npr.org/1001/rss.xml" },
+  { "name": "The Guardian World", "category": "world", "url": "https://www.theguardian.com/world/rss" },
+  { "name": "New York Times World", "category": "world", "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
+  { "name": "Al Jazeera", "category": "world", "url": "https://www.aljazeera.com/xml/rss/all.xml" },
+  { "name": "PBS NewsHour", "category": "world", "url": "https://www.pbs.org/newshour/feeds/rss/headlines" },
+  { "name": "Wall Street Journal World", "category": "world", "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews" },
+  { "name": "The Economist", "category": "world", "url": "https://www.economist.com/the-world-this-week/rss.xml" },
+  { "name": "Ars Technica", "category": "tech", "url": "https://feeds.arstechnica.com/arstechnica/index" },
+  { "name": "The Verge", "category": "tech", "url": "https://www.theverge.com/rss/index.xml" },
+  { "name": "Hacker News", "category": "tech", "url": "https://hnrss.org/frontpage" },
+  { "name": "ScienceDaily", "category": "science", "url": "https://www.sciencedaily.com/rss/all.xml" },
+  { "name": "NASA", "category": "science", "url": "https://www.nasa.gov/feed/" },
+  { "name": "New Scientist", "category": "science", "url": "https://www.newscientist.com/feed/home/" },
+  { "name": "Quanta Magazine", "category": "science", "url": "https://www.quantamagazine.org/feed/" }
+]

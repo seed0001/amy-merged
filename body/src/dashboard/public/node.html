@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mind Node</title>
+<style>
+  :root{--bg:#05070d;--panel:#0b101b;--line:#172036;--text:#dfe6f5;--dim:#7d8aa8;--mute:#4a5570;--bad:#fca5a5;--ok:#86efac;
+    --k-person:#39c6ff;--k-concept:#8b5cf6;--k-memory:#2dd4bf;--k-experience:#f59e0b;--k-interest:#f472b6;--k-goal:#facc15;--k-insight:#e879f9;--k-bucket:#ff5c8a;--k-act:#a3e635;--k-body:#60a5fa;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:13px/1.45 "Segoe UI",system-ui,sans-serif}
+  body.embed{background:var(--panel)}
+  main{max-width:900px;margin:0 auto;padding:16px}
+  body.embed main{padding:10px 12px}
+  h1{font-size:18px;margin:0 0 4px;color:#fff;font-weight:600;overflow-wrap:anywhere}
+  h2{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:18px 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+  .chip{display:inline-block;font-size:10px;padding:1px 7px;border-radius:9px;border:1px solid var(--c,var(--line));color:var(--c,var(--dim));margin-right:6px}
+  .id{color:var(--mute);font-size:11px;overflow-wrap:anywhere}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  td,th{padding:3px 6px;border-bottom:1px solid #111a2c;vertical-align:top;text-align:left}
+  th{color:var(--dim);font-weight:400;white-space:nowrap;width:1%}
+  td{overflow-wrap:anywhere}
+  a{color:#93c5fd;text-decoration:none}
+  a:hover{text-decoration:underline}
+  .dim{color:var(--dim)}
+  .mute{color:var(--mute)}
+  .bad{color:var(--bad)}
+  .ok{color:var(--ok)}
+  .live{font-size:22px;font-variant-numeric:tabular-nums;color:#fff}
+  .meter{height:8px;background:#0f1626;border-radius:4px;position:relative;margin:4px 0 8px}
+  .meter i{position:absolute;inset:0 auto 0 0;background:var(--k-bucket);border-radius:4px;transition:width .3s}
+  .meter b{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff}
+  .edit{display:grid;grid-template-columns:1fr 120px 60px;gap:6px;align-items:center;margin:4px 0}
+  .edit input{background:#0f1626;color:var(--text);border:1px solid var(--line);border-radius:5px;padding:3px 6px;font:12px "Segoe UI",sans-serif;width:100%}
+  .edit input[type=checkbox]{width:auto;justify-self:start}
+  button{background:#0f1626;color:var(--text);border:1px solid var(--line);border-radius:5px;padding:3px 8px;font:12px "Segoe UI",sans-serif;cursor:pointer}
+  button:hover{border-color:var(--dim)}
+  .msg{font-size:12px;margin:6px 0;white-space:pre-line}
+  ul{margin:0;padding-left:18px}
+  li{margin:2px 0}
+  pre{background:#080d18;border-radius:6px;padding:8px;overflow:auto;font-size:11px;max-height:240px}
+  .arrow{color:var(--mute);white-space:nowrap}
+</style>
+</head>
+<body>
+<main id="root"><p class="dim">loading…</p></main>
+<script type="module">
+// The inspector for one node of her mind (cognitive-graph.js, GET /api/mind/node/:id): what it is, where it
+// came from, every connection with its type, strength and origin, which pressures touch it, when it fired,
+// what's related, and the values its owning module lets you change, with undo. Nothing here is computed in
+// the browser: it shows what the server read from her systems.
+const params=new URLSearchParams(location.search);let id=params.get('id');const embed=params.has('embed');
+if(embed)document.body.classList.add('embed');
+const root=document.getElementById('root');
+const esc=(s)=>String(s??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const when=(t)=>t?new Date(t).toLocaleString():'';
+const num=(v)=>typeof v==='number'?(Math.abs(v)>=100?v.toFixed(0):+v.toFixed(4)):v;
+const link=(n)=>`<a href="node.html?id=${encodeURIComponent(n.id)}${embed?'&embed=1':''}" data-go="${esc(n.id)}"><span class="chip" style="--c:var(--k-${esc(n.kind)})">${esc(n.kind)}</span>${esc(n.label)}</a>`;
+let detail=null,liveTimer=null;
+
+async function api(url,opts){const r=await fetch(url,opts);let body;try{body=await r.json();}catch{body={error:`${r.status} ${r.statusText}: the server didn't answer with JSON`};}if(!r.ok)throw new Error(body.error||`${r.status} ${r.statusText}`);return body;}
+
+async function load(){clearInterval(liveTimer);root.innerHTML='<p class="dim">loading…</p>';
+  if(!id){root.innerHTML='<p class="bad">No node given: open this page as node.html?id=kind:id, or click a node in the mind view.</p>';return;}
+  try{detail=await api(`/api/mind/node/${encodeURIComponent(id)}`);}catch(err){root.innerHTML=`<p class="bad">${esc(err.message)}</p><p><a href="mind-graph.html">back to her knowledge graph</a></p>`;return;}
+  document.title=`${detail.node.label} · Mind Node`;render();startLive();}
+
+function render(){const d=detail,n=d.node;const data=Object.entries(n.data).filter(([k])=>!['editable','config'].includes(k));
+  root.innerHTML=`
+  <div><span class="chip" style="--c:var(--k-${esc(n.kind)})">${esc(n.kind)}</span>${embed?'':' <a href="mind-graph.html" class="dim">her knowledge graph</a>'}</div>
+  <h1>${esc(n.label)}</h1><div class="id">${esc(n.id)} · cluster ${esc(d.cluster)} · ${d.degree} connection${d.degree===1?'':'s'}</div>
+  <div id="live"></div>
+  <h2>What it is</h2><table>${data.map(([k,v])=>`<tr><th>${esc(k)}</th><td>${fmt(v)}</td></tr>`).join('')||'<tr><td class="dim">no further data</td></tr>'}${n.data.config?`<tr><th>config</th><td>${fmt(n.data.config)}</td></tr>`:''}</table>
+  <h2>Where it came from</h2><table>
+    <tr><th>source</th><td>${esc(n.provenance.source)}</td></tr>
+    ${n.provenance.at?`<tr><th>when</th><td>${esc(when(n.provenance.at))}</td></tr>`:''}
+    ${n.provenance.by?`<tr><th>by</th><td>${esc(n.provenance.by)}</td></tr>`:''}
+    ${(n.alsoFrom||[]).map((p)=>`<tr><th>also in</th><td>${esc(p.source)}${p.at?` · ${esc(when(p.at))}`:''}${p.by?` · ${esc(p.by)}`:''}</td></tr>`).join('')}
+  </table>
+  <h2>Change it</h2><div id="edits">${editsHtml()}</div><div class="msg" id="editMsg"></div><div id="undoBox"></div>
+  <h2>Connections (${d.neighbors.length})</h2>
+  ${d.neighbors.length?`<table><tr><th></th><th>type</th><th>strength</th><th>node</th><th>origin</th></tr>${d.neighbors.map((x)=>`<tr><td class="arrow">${x.direction==='out'?'→':'←'}</td><td>${esc(x.edge.type)}</td><td>${esc(num(x.edge.strength))}${x.edge.live?' <span class="mute">live</span>':''}</td><td>${link(x.node)}</td><td class="dim">${esc(origin(x.edge.origin))}</td></tr>`).join('')}</table>`:'<p class="dim">No connections to anything else in her systems yet.</p>'}
+  <h2>Pressures that touch it</h2>${d.pressures.length?`<ul>${d.pressures.map((p)=>`<li>${link({id:p.bucket,kind:'bucket',label:p.bucket.slice(7)})} <span class="dim">via ${esc(p.via)}, ${esc(num(p.strength))}</span></li>`).join('')}</ul>`:'<p class="dim">No pressure bucket is connected to this node.</p>'}
+  <h2>When it fired (${d.activations.total??0} in her activity log)</h2>${d.activations.error?`<p class="bad">${esc(d.activations.error)}</p>`:d.activations.list.length?`<table>${d.activations.list.map((a)=>`<tr><th>${esc(when(a.time))}</th><td><b>${esc(a.type)}</b> <span class="dim">${esc(a.summary)}</span></td></tr>`).join('')}</table>`:'<p class="dim">No event in her activity log has touched it.</p>'}
+  <h2>Related</h2>${relatedHtml(d.related)}
+  <h2>Growth</h2><div id="growth" class="dim">loading…</div>`;
+  wire();loadUndo();loadGrowth();}
+
+function fmt(v){if(v==null)return '<span class="mute">none</span>';if(typeof v==='number')return esc(num(v));if(typeof v==='boolean')return v?'yes':'no';if(typeof v==='object')return `<pre>${esc(JSON.stringify(v,null,1))}</pre>`;if(/^\d{12,}$/.test(String(v)))return esc(v);return esc(v);}
+function origin(o){if(!o)return '';return [o.source,o.ref,o.by&&`by ${o.by}`,o.place&&`in ${o.place}`,o.at&&when(o.at)].filter(Boolean).join(' · ');}
+function relatedHtml(r){const out=[];
+  if(r.memories?.length)out.push(`<p class="dim">Memories</p><ul>${r.memories.map((m)=>`<li><a href="node.html?id=${encodeURIComponent(m.id)}${embed?'&embed=1':''}" data-go="${esc(m.id)}">${esc(m.text)}</a> <span class="mute">${esc(when(m.at))}</span></li>`).join('')}</ul>`);
+  if(r.facts?.length)out.push(`<p class="dim">Facts she holds on it (kg.js)</p><ul>${r.facts.map((f)=>`<li>${esc(f.text)} <span class="mute">${f.said_by?`${esc(f.said_by)} told her`:'she noticed it herself'}${f.place?` in ${esc(f.place)}`:''}, ${esc(when(f.at))} · fact ${f.id}</span></li>`).join('')}</ul>`);
+  if(r.factsError)out.push(`<p class="bad">${esc(r.factsError)}</p>`);
+  if(r.wordnet?.length)out.push(`<p class="dim">WordNet senses of "${esc(detail.node.label)}"</p><ul>${r.wordnet.map((s)=>`<li><b>${esc(s.pos)}</b> ${esc(s.definition)}${s.relations?.length?` <span class="mute">(${s.relations.map((x)=>`${esc(x.relation)} ${esc(x.word??x.target)}`).join(', ')})</span>`:''}</li>`).join('')}</ul>`);
+  if(r.wordnetError)out.push(`<p class="bad">${esc(r.wordnetError)}</p>`);
+  if(r.profile)out.push(`<p class="dim">Profile (memory.js)</p>${fmt(r.profile)}`);
+  if(r.profileError)out.push(`<p class="bad">${esc(r.profileError)}</p>`);
+  if(r.images)out.push(`<p class="mute">Images: ${esc(r.images)}</p>`);
+  return out.join('')||'<p class="dim">Nothing else is linked to it.</p>';}
+
+// ---- editable values: each goes through its owning module's setter on the server ----
+function editsHtml(){const d=detail;if(!d.editable.length)return `<p class="dim">Read-only. ${esc(d.readOnly||'')}</p>`;
+  return d.editable.map((x,k)=>`<div class="edit" data-k="${k}"><label title="${esc(x.module)}: ${esc(x.path)}">${esc(x.label)} <span class="mute">${esc(x.path)}</span></label>${x.type==='boolean'?`<input type="checkbox" ${x.value?'checked':''}>`:`<input type="${x.type==='number'?'number':'text'}" ${x.type==='number'?`step="any" min="${x.min}" max="${x.max}"`:''} value="${esc(x.value??'')}" placeholder="${x.type==='color'?'#RRGGBB, a name, or none':''}">`}<button>save</button></div>`).join('')+`<p class="mute">Ranges: ${[...new Set(d.editable.filter((x)=>x.type==='number').map((x)=>`${x.min}..${x.max}`))].join(', ')||'n/a'}. The owning module validates every change and the old value is kept for undo.</p>`;}
+function wire(){for(const row of root.querySelectorAll('.edit')){const x=detail.editable[+row.dataset.k];const input=row.querySelector('input');row.querySelector('button').onclick=()=>save(x,input);input.onkeydown=(e)=>{if(e.key==='Enter')save(x,input);};}
+  for(const a of root.querySelectorAll('a[data-go]'))a.onclick=(e)=>{if(e.ctrlKey||e.metaKey||e.button)return;e.preventDefault();go(a.dataset.go);};}
+async function save(x,input){const msg=document.getElementById('editMsg');let value;
+  if(x.type==='boolean')value=input.checked;else if(x.type==='number'){if(input.value.trim()===''){msg.className='msg bad';msg.textContent=`${x.path}: no number entered. Type a value from ${x.min} to ${x.max}.`;return;}value=Number(input.value);}else value=input.value.trim()===''?null:input.value.trim();
+  msg.className='msg dim';msg.textContent='saving…';
+  try{const r=await api(`/api/mind/node/${encodeURIComponent(id)}/value`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:x.path,module:x.module,value})});
+    msg.className='msg ok';msg.textContent=`${r.path}: ${JSON.stringify(r.before)} → ${JSON.stringify(r.after)} (edit #${r.id}; undo below)`;await refresh();}
+  catch(err){msg.className='msg bad';msg.textContent=err.message;}}
+async function refresh(){try{detail=await api(`/api/mind/node/${encodeURIComponent(id)}`);document.getElementById('edits').innerHTML=editsHtml();wire();loadUndo();}catch(err){document.getElementById('editMsg').textContent=err.message;}}
+async function loadUndo(){const box=document.getElementById('undoBox');try{const all=await api('/api/mind/undo');const mine=all.filter((e)=>e.node===id).slice(0,10);
+  box.innerHTML=mine.length?`<table>${mine.map((e)=>`<tr><th>#${e.id} ${esc(when(e.at))}</th><td>${esc(e.path)}: ${esc(JSON.stringify(e.before))} → ${esc(JSON.stringify(e.after))}</td><td>${e.undone?'<span class="mute">undone</span>':`<button data-undo="${e.id}">undo</button>`}</td></tr>`).join('')}</table>`:'';
+  for(const b of box.querySelectorAll('button[data-undo]'))b.onclick=async()=>{const msg=document.getElementById('editMsg');try{const r=await api('/api/mind/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:+b.dataset.undo})});msg.className='msg ok';msg.textContent=`Undid #${r.undone}: ${r.path} is ${JSON.stringify(r.value)} again.`;await refresh();}catch(err){msg.className='msg bad';msg.textContent=err.message;}};
+  }catch(err){box.innerHTML=`<p class="bad">${esc(err.message)}</p>`;}}
+async function loadGrowth(){const box=document.getElementById('growth');try{const h=await api(`/api/mind/history?node=${encodeURIComponent(id)}&limit=40`);
+  box.innerHTML=h.entries.length?`<table>${h.entries.slice().reverse().map((e)=>`<tr><th>${esc(when(e.since&&e.baseline?e.since:e.at))}</th><td>${esc(e.op)} ${e.id?'':`${esc(e.from)} -${esc(e.type)}→ ${esc(e.to)}`}${e.before!=null?` (${esc(num(e.before))} → ${esc(num(e.strength))})`:''} <span class="mute">${esc(e.source??'')}${e.baseline?' · first recorded':''}</span></td></tr>`).join('')}</table>`:'No structural change recorded for it yet.';}catch(err){box.className='bad';box.textContent=err.message;}}
+
+// ---- live values: buckets from the pressure snapshot, feelings from her expression state ----
+function startLive(){const n=detail.node;const box=document.getElementById('live');
+  if(n.kind==='bucket'&&!n.data.reserve){const tick=async()=>{try{const s=await api('/api/pressure');const v=s.buckets?.[n.data.bucket];const thr=s.thresholds?.[n.data.bucket];const fired=s.last_action?.bucket===n.data.bucket;
+      box.innerHTML=`<h2>Live</h2><div class="live">${v==null?'<span class="mute">not in her pressure state</span>':(+v).toFixed(3)}</div><div class="meter"><i style="width:${Math.max(0,Math.min(1,+v||0))*100}%"></i>${thr!=null?`<b style="left:${thr*100}%"></b>`:''}</div><div class="dim">${thr!=null?`threshold ${thr}`:'a feeling: no threshold'}${s.armed?.[n.data.bucket]===false?' · fired, waiting to drop below threshold before it can fire again':''}${fired?` · last fired ${esc(when(s.last_action.at))}`:''} · ${s.actions_live?'actions live':'actions log-only'}</div>`;}catch(err){box.innerHTML=`<p class="bad">Live value unavailable: ${esc(err.message)}</p>`;}};tick();liveTimer=setInterval(tick,1000);}
+  else if(n.kind==='bucket'&&n.data.reserve){box.innerHTML=`<h2>Live</h2><div class="live">${esc(num(n.data.value))}</div><div class="dim">stored energy as of this page load (pressure.js state.reserve; the pressure snapshot doesn't carry it, so it isn't polled)</div>`;}
+  else if(n.kind==='body'&&n.data.group==='feeling'){const tick=async()=>{try{const s=await api('/api/avatar/emotion?character=main');const v=s.feelings?.[n.data.feeling]??0;box.innerHTML=`<h2>Live</h2><div class="live">${(+v).toFixed(3)}</div><div class="meter"><i style="width:${Math.max(0,Math.min(1,+v))*100}%;background:var(--k-body)"></i></div><div class="dim">her current blend (emotion.js); set by what she says and hears, so read-only here</div>`;}catch(err){box.innerHTML=`<p class="bad">Live value unavailable: ${esc(err.message)}</p>`;}};tick();liveTimer=setInterval(tick,2000);}
+  else if(n.kind==='body'&&n.data.readOnly){box.innerHTML=`<h2>Live</h2><p class="dim">${esc(n.data.readOnly)}</p>`;}}
+
+// Walk to a neighbour without leaving the page, and tell the mind view (when embedded) to follow.
+function go(next){id=next;history.pushState({id},'',`node.html?id=${encodeURIComponent(id)}${embed?'&embed=1':''}`);if(embed&&parent!==window)parent.postMessage({type:'mind-focus',id},location.origin);load();}
+addEventListener('popstate',()=>{id=new URLSearchParams(location.search).get('id');if(embed&&parent!==window)parent.postMessage({type:'mind-focus',id},location.origin);load();});
+load();
+</script>
+</body>
+</html>

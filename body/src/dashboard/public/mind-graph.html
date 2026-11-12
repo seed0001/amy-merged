@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amy's Mind</title>
+<style>
+  :root{--bg:#05070d;--panel:#0b101b;--line:#172036;--text:#dfe6f5;--dim:#7d8aa8;--mute:#4a5570;
+    --k-person:#39c6ff;--k-concept:#8b5cf6;--k-memory:#2dd4bf;--k-experience:#f59e0b;--k-interest:#f472b6;--k-goal:#facc15;--k-insight:#e879f9;--k-bucket:#ff5c8a;--k-act:#a3e635;--k-body:#60a5fa;--k-none:#64748b;
+    --c-pressure:#ff5c8a;--c-feelings:#ffb347;--c-hearing:#39c6ff;--c-intake:#8b5cf6;--c-tools:#a3e635;}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.4 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+  .grid{display:grid;grid-template-columns:290px 1fr 330px;grid-template-rows:46px 1fr 140px;height:100vh;gap:8px;padding:8px}
+  header{grid-column:1/4;display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;white-space:nowrap;overflow:hidden}
+  header h1{font-size:14px;margin:0;letter-spacing:.14em;text-transform:uppercase;color:#fff;font-weight:600}
+  header .stat{color:var(--dim);font-variant-numeric:tabular-nums}
+  header .stat b{color:var(--text)}
+  header .live{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--dim)}
+  header .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:hidden;position:relative}
+  .panel h2{margin:0 0 8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  #left{overflow:auto}
+  .bucket{display:grid;grid-template-columns:92px 1fr 34px;align-items:center;gap:8px;margin:0 0 6px;font-size:12px;cursor:pointer}
+  .bucket:hover .name{color:#fff}
+  .bucket .name{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bucket .bar{position:relative;height:12px;background:#0f1626;border-radius:6px;overflow:hidden}
+  .bucket .fill{position:absolute;inset:0 auto 0 0;border-radius:6px;background:linear-gradient(90deg,var(--c-pressure),#ff9ab6);transition:width .3s linear}
+  .bucket .thr{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.6}
+  .bucket .spark{position:absolute;inset:0;pointer-events:none}
+  .bucket .val{text-align:right;font-variant-numeric:tabular-nums}
+  .bucket.feel .fill{background:linear-gradient(90deg,var(--c-feelings),#ffd38a)}
+  .bucket.fired .bar{box-shadow:0 0 0 2px #fff inset,0 0 18px var(--c-pressure)}
+  .group{margin:10px 0 6px;color:var(--mute);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+  #center{padding:0;background:radial-gradient(900px 600px at 50% 45%,#0b1222 0%,#05070d 70%)}
+  #gl{width:100%;height:100%;display:block;cursor:grab}
+  #center .caption{position:absolute;left:14px;top:12px;color:var(--dim);font-size:11px;max-width:55%;pointer-events:none}
+  #center .caption b{display:block;color:#fff;font-weight:600;font-size:13px;letter-spacing:.06em}
+  #center .legend{position:absolute;right:12px;top:12px;display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:10px;color:var(--dim);pointer-events:none}
+  #center .legend span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:var(--c);box-shadow:0 0 8px var(--c)}
+  #center .legend span.on{color:#fff}
+  #center .hint{position:absolute;left:14px;bottom:10px;color:var(--mute);font-size:10px;pointer-events:none;max-width:70%}
+  #center .tools{position:absolute;right:12px;bottom:10px;display:flex;gap:6px}
+  #center .tools button{background:#0f1626;color:var(--dim);border:1px solid var(--line);border-radius:6px;font:11px "Segoe UI",sans-serif;padding:3px 8px;cursor:pointer}
+  #center .tools button:hover{color:#fff}
+  #center .warn{position:absolute;left:14px;top:52px;color:#fca5a5;font-size:11px;max-width:60%;white-space:pre-line;pointer-events:none}
+  #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  #labels .lab{position:absolute;transform:translate(-50%,-140%);font-size:10px;color:#fff;background:rgba(5,7,13,.55);border:1px solid var(--c);border-radius:6px;padding:1px 6px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 0 12px var(--c);transition:opacity .4s}
+  #labels .lab.cl{border-style:dashed;box-shadow:none;color:var(--dim)}
+  #tip{position:absolute;pointer-events:none;font-size:11px;background:rgba(5,7,13,.85);border:1px solid var(--line);border-radius:6px;padding:3px 7px;color:#fff;display:none;max-width:280px}
+  #inspector{position:absolute;top:8px;right:8px;bottom:8px;width:min(460px,70%);background:var(--panel);border:1px solid var(--line);border-radius:10px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 0 40px #000}
+  #inspector .bar{display:flex;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:11px;color:var(--dim)}
+  #inspector .bar a{color:var(--dim)}
+  #inspector .bar button{margin-left:auto;background:none;border:0;color:var(--dim);font-size:16px;cursor:pointer}
+  #inspector iframe{flex:1;border:0;width:100%;background:var(--panel)}
+  #right{display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .waves canvas{width:100%;height:50px;display:block;background:#080d18;border-radius:8px;margin-bottom:6px}
+  .waves .lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:2px}
+  #hearing{flex:1;overflow:auto}
+  .line{padding:6px 8px;border-left:2px solid var(--c-hearing);background:#080d18;border-radius:0 8px 8px 0;margin-bottom:6px}
+  .line .who{color:var(--c-hearing);font-size:11px}
+  .line .chips{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px}
+  .chip{font-size:10px;padding:1px 6px;border-radius:9px;background:#1b1535;color:#c4b5fd;border:1px solid #3b2d6e}
+  .chip.hot{background:#3b1d2b;color:#ffb3c7;border-color:#7a2d45}
+  #ticker{grid-column:1/4;overflow:hidden}
+  #ticker .rows{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px;font-size:11px;font-variant-numeric:tabular-nums}
+  #ticker .ev{display:flex;gap:8px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default}
+  #ticker .ev[data-node]{cursor:pointer}
+  #ticker .ev .t{color:var(--mute)}
+  #ticker .ev .k{color:var(--c);min-width:72px}
+  #ticker .ev .m{color:var(--text);overflow:hidden;text-overflow:ellipsis}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+</head>
+<body>
+<div class="grid">
+  <header>
+    <h1>Amy's Mind</h1>
+    <span class="stat">pressure <b id="total">–</b></span>
+    <span class="stat">last want <b id="lastWant">–</b></span>
+    <span class="stat">lines/min <b id="lpm">0</b></span>
+    <span class="stat">tool calls/min <b id="tpm">0</b></span>
+    <span class="stat">firing <b id="fpm">0</b>/min</span>
+    <span class="stat">graph <b id="gcount">–</b></span>
+    <span class="stat">seed <b id="seed">–</b></span>
+    <span class="live"><span class="dot" id="dot"></span><span id="conn">connecting</span></span>
+  </header>
+  <section class="panel" id="left"><h2>Buckets</h2><div id="buckets"></div></section>
+  <section class="panel" id="center">
+    <canvas id="gl"></canvas>
+    <div class="caption"><b id="capTitle">quiet</b><span id="capText">nothing fires unless something happened</span></div>
+    <div class="warn" id="warn"></div>
+    <div class="legend" id="legend"></div>
+    <div class="hint">drag to turn · wheel to zoom (out: clusters, in: every node) · click a node to inspect it · <span id="growth"></span></div>
+    <div class="tools"><button id="replay" title="Replay how her mind grew, from the change log">replay growth</button><button id="home" title="Back to the whole mind">whole mind</button></div>
+    <div id="labels"></div>
+    <div id="tip"></div>
+    <div id="inspector"><div class="bar"><span id="inspTitle">inspector</span><a id="inspOpen" target="_blank" rel="noopener">open as page</a><button id="inspClose" title="Close">×</button></div><iframe id="inspFrame" title="Node inspector"></iframe></div>
+  </section>
+  <section class="panel" id="right">
+    <div class="waves">
+      <h2>Frequencies</h2>
+      <div class="lbl"><span>what she hears (lines)</span><span id="w1v"></span></div><canvas id="w1"></canvas>
+      <div class="lbl"><span>intake energy (what it does to her)</span><span id="w2v"></span></div><canvas id="w2"></canvas>
+      <div class="lbl"><span>her activity (tools, thoughts, wants)</span><span id="w3v"></span></div><canvas id="w3"></canvas>
+    </div>
+    <div id="hearing"><h2>Hearing</h2><div id="lines"></div></div>
+  </section>
+  <section class="panel" id="ticker"><h2>Everything, as it happens</h2><div class="rows" id="rows"></div></section>
+</div>
+<script type="module">
+import * as THREE from 'three';
+// Her mind, drawn from her real structure. Every point is a node of her cognitive graph (cognitive-graph.js:
+// /api/mind/graph), placed by the server's layout, which is deterministic from her graph and her own seed.
+// Every line is a real edge. When an event happens (/api/mind/events), the nodes it touched fire and the
+// signal runs a little way along their real edges. Nothing here is invented or stored in this browser.
+const css=(v)=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const KINDS=['person','concept','memory','experience','interest','goal','insight','bucket','act','body'];
+const KIND_LABEL={person:'people',concept:'concepts',memory:'memories',experience:'experiences',interest:'interests',goal:'goals',insight:'insights',bucket:'pressure',act:'acts',body:'body'};
+const kindColor={};for(const k of [...KINDS,'none'])kindColor[k]=new THREE.Color(css(`--k-${k}`));
+const esc=(s)=>String(s??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const weightOf=(s)=>Math.min(1,0.25+Math.log1p(Math.abs(+s||0))*0.5);
+
+// ---------- three.js scene ----------
+const canvas=document.getElementById('gl');const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(3,Math.max(2,devicePixelRatio)));
+const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(42,1,0.01,50);
+// A node is drawn as a neuron under a microscope (owner, 2026-11-09: "microscopic details", not fuzzy blobs): a
+// cell body with a crisp membrane, a nucleus with a bright nucleolus, and fine dendrites branching out, each node
+// its own shape (seeded from where it sits). Edges are anti-aliased to the pixel at any size, and a node never
+// shrinks below a few pixels, so far ones stay structures, not specks. Firing lights it up from the inside out.
+const vert=`attribute float aBase;attribute float aAct;attribute float aSize;attribute float aVis;varying float vI;varying vec3 vC;varying float vV;varying float vPx;varying float vSeed;uniform float uScale;uniform float uMin;
+void main(){vI=clamp(aBase+aAct,0.0,1.6);vC=color;vV=aVis;vSeed=fract(sin(dot(position.xyz,vec3(12.9898,78.233,37.719)))*43758.5453);
+  vec4 mv=modelViewMatrix*vec4(position,1.0);float px=(aSize*(5.0+vI*3.0))*uScale/-mv.z;vPx=max(uMin,px)*aVis;gl_PointSize=vPx;gl_Position=projectionMatrix*mv;}`;
+const frag=`uniform float uFade;varying float vI;varying vec3 vC;varying float vV;varying float vPx;varying float vSeed;
+float h(float n){return fract(sin(n)*43758.5453);}
+void main(){if(vV<0.01)discard;vec2 d=gl_PointCoord-0.5;float r=length(d);if(r>0.5)discard;
+  float aa=1.6/max(vPx,1.0);float ang=atan(d.y,d.x);
+  // dendrites: 5 to 8 tapering branches, each wavering, forking once on the way out
+  float den=0.0;float n=5.0+floor(vSeed*4.0);
+  for(int i=0;i<8;i++){if(float(i)>=n)break;float fi=float(i);
+    float th=6.2831*(fi/n)+(h(vSeed*91.0+fi)-0.5)*0.9;float wob=0.22*sin(r*18.0+fi*2.3+vSeed*20.0);
+    float da=abs(mod(ang-th-wob+3.14159,6.28318)-3.14159);float len=0.36+0.12*h(vSeed*17.0+fi);
+    float w=mix(0.05,0.006,smoothstep(0.12,len,r));float on=smoothstep(len,len-0.04,r);
+    den=max(den,on*smoothstep(w+aa,w,da*r));
+    float fork=0.35*sign(h(fi+vSeed*5.0)-0.5);float da2=abs(mod(ang-th-wob*0.6-fork*smoothstep(0.24,0.42,r)+3.14159,6.28318)-3.14159);
+    den=max(den,on*step(0.24,r)*smoothstep(w*0.8+aa,w*0.8,da2*r));}
+  float soma=0.17+0.015*sin(ang*3.0+vSeed*30.0);
+  float cell=smoothstep(soma+aa,soma,r);
+  float membrane=cell*smoothstep(soma-0.03-aa,soma-0.03,r);
+  float nucleus=smoothstep(0.075+aa,0.075,length(d-vec2(0.02,-0.015)*(vSeed-0.5)));
+  float nucleolus=smoothstep(0.024+aa,0.024,length(d-vec2(0.035,0.02)*(vSeed-0.3)));
+  float glow=exp(-r*r*18.0)*vI*0.55;
+  vec3 light=mix(vC,vec3(1.0),0.55);
+  vec3 c=vC*0.32*cell+light*membrane*(0.9+vI)+mix(vC,vec3(1.0),0.25)*nucleus*(0.55+vI*0.8)+vec3(1.0)*nucleolus*(0.7+vI)+vC*den*(0.55+vI*1.3)+vC*glow;
+  float a=clamp(cell*0.55+membrane+nucleus*0.6+nucleolus+den*0.85+glow,0.0,1.0)*(0.65+vI*0.35)*uFade;
+  gl_FragColor=vec4(c*a,a);}`;
+const nodeMat=new THREE.ShaderMaterial({vertexShader:vert,fragmentShader:frag,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uScale:{value:1},uFade:{value:1},uMin:{value:6}}});
+const clusterMat=nodeMat.clone();clusterMat.uniforms={uScale:{value:1},uFade:{value:0},uMin:{value:8}};
+const edgeMat=new THREE.ShaderMaterial({uniforms:{uFade:{value:1}},vertexShader:`attribute float aAct;varying float vA;varying vec3 vC;void main(){vA=aAct;vC=color;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,fragmentShader:`uniform float uFade;varying float vA;varying vec3 vC;void main(){float a=(0.05+min(vA,1.0)*0.5)*uFade;gl_FragColor=vec4(vC*(0.7+vA*1.2),a);}`,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+const cEdgeMat=edgeMat.clone();cEdgeMat.uniforms={uFade:{value:0}};
+// Owner, 2026-11-09: no connection lines drawn. The edges are still real and still loaded: the lightning only
+// ever jumps along them, so you see a connection exactly when a signal crosses it.
+const SHOW_EDGES=false;
+
+// ---------- her graph, as loaded ----------
+let G={nodes:[],edges:[],clusters:[],clusterEdges:[],version:null,seed:null};
+const idx=new Map();let neighbors=[];
+let posCur=new Float32Array(0),posTgt=new Float32Array(0),col=new Float32Array(0),base=new Float32Array(0),act=new Float32Array(0),size=new Float32Array(0),vis=new Float32Array(0);
+let nodeGeo=null,nodePts=null,edgeGeo=null,edgeLines=null,cluGeo=null,cluPts=null,cEdgeGeo=null,cEdgeLines=null;
+let lpos=new Float32Array(0),lact=new Float32Array(0);let tweening=false;
+function setAttr(geo,name,arr,n){geo.setAttribute(name,new THREE.BufferAttribute(arr,n));}
+function applyGraph(g,first){
+  const oldIdx=new Map(idx),oldPos=posCur,oldAct=act;
+  G=g;idx.clear();g.nodes.forEach((n,i)=>idx.set(n.id,i));const N=g.nodes.length;sparks.length=0;replay=null;
+  posCur=new Float32Array(N*3);posTgt=new Float32Array(N*3);col=new Float32Array(N*3);base=new Float32Array(N);act=new Float32Array(N);size=new Float32Array(N);vis=new Float32Array(N).fill(1);
+  const fresh=[];
+  g.nodes.forEach((n,i)=>{const p=n.pos||[0,0,0];posTgt.set(p,i*3);const o=oldIdx.get(n.id);if(o!==undefined){posCur.set(oldPos.subarray(o*3,o*3+3),i*3);act[i]=oldAct[o];}else{posCur.set(p,i*3);if(!first)fresh.push(i);}
+    const c=kindColor[n.kind]||kindColor.none;col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;base[i]=0.06;size[i]=1+Math.log2(1+(n.degree||0))*0.55;});
+  neighbors=g.nodes.map(()=>[]);g.edges.forEach((e,k)=>{const a=idx.get(e.from),b=idx.get(e.to);if(a===undefined||b===undefined)return;const w=weightOf(e.strength);neighbors[a].push([b,k,w]);neighbors[b].push([a,k,w]);});
+  for(const list of neighbors){list.sort((x,y)=>y[2]-x[2]);list.length=Math.min(list.length,12);}
+  // nodes
+  if(nodePts){scene.remove(nodePts);nodeGeo.dispose();}
+  nodeGeo=new THREE.BufferGeometry();setAttr(nodeGeo,'position',posCur,3);setAttr(nodeGeo,'color',col,3);setAttr(nodeGeo,'aBase',base,1);setAttr(nodeGeo,'aAct',act,1);setAttr(nodeGeo,'aSize',size,1);setAttr(nodeGeo,'aVis',vis,1);
+  nodePts=new THREE.Points(nodeGeo,nodeMat);nodePts.frustumCulled=false;scene.add(nodePts);
+  G.ends=new Int32Array(g.edges.length*2);g.edges.forEach((e,k)=>{G.ends[k*2]=idx.get(e.from);G.ends[k*2+1]=idx.get(e.to);});
+  // edges: straight fibers between real endpoints, warmed by the signals on them
+  const M=g.edges.length;lpos=new Float32Array(M*6);lact=new Float32Array(M*2);const lcol=new Float32Array(M*6);
+  g.edges.forEach((e,k)=>{const a=idx.get(e.from),b=idx.get(e.to);for(const [v,i] of [[0,a],[1,b]]){lcol.set(col.subarray(i*3,i*3+3),k*6+v*3);}});
+  if(edgeLines){scene.remove(edgeLines);edgeGeo.dispose();}
+  edgeGeo=new THREE.BufferGeometry();setAttr(edgeGeo,'position',lpos,3);setAttr(edgeGeo,'color',lcol,3);setAttr(edgeGeo,'aAct',lact,1);edgeLines=new THREE.LineSegments(edgeGeo,edgeMat);edgeLines.frustumCulled=false;edgeLines.visible=SHOW_EDGES;scene.add(edgeLines);writeEdgePositions();
+  // clusters: what the zoomed-out view shows
+  const C=g.clusters.length;const cp=new Float32Array(C*3),cc=new Float32Array(C*3),cb=new Float32Array(C).fill(0.12),ca=new Float32Array(C),cs=new Float32Array(C),cv=new Float32Array(C).fill(1);const cIdx=new Map();
+  g.clusters.forEach((c,i)=>{cIdx.set(c.id,i);cp.set(c.pos,i*3);const k=kindColor[c.kind]||kindColor.none;cc[i*3]=k.r;cc[i*3+1]=k.g;cc[i*3+2]=k.b;cs[i]=1.5+Math.sqrt(c.count)*0.9;});
+  if(cluPts){scene.remove(cluPts);cluGeo.dispose();}
+  cluGeo=new THREE.BufferGeometry();setAttr(cluGeo,'position',cp,3);setAttr(cluGeo,'color',cc,3);setAttr(cluGeo,'aBase',cb,1);setAttr(cluGeo,'aAct',ca,1);setAttr(cluGeo,'aSize',cs,1);setAttr(cluGeo,'aVis',cv,1);cluPts=new THREE.Points(cluGeo,clusterMat);scene.add(cluPts);
+  const CE=g.clusterEdges.length;const cep=new Float32Array(CE*6),cec=new Float32Array(CE*6),cea=new Float32Array(CE*2);
+  g.clusterEdges.forEach((e,k)=>{const a=cIdx.get(e.from),b=cIdx.get(e.to);if(a===undefined||b===undefined)return;cep.set(cp.subarray(a*3,a*3+3),k*6);cep.set(cp.subarray(b*3,b*3+3),k*6+3);cec.set(cc.subarray(a*3,a*3+3),k*6);cec.set(cc.subarray(b*3,b*3+3),k*6+3);cea[k*2]=cea[k*2+1]=Math.min(0.6,Math.log1p(e.strength)*0.08);});
+  if(cEdgeLines){scene.remove(cEdgeLines);cEdgeGeo.dispose();}
+  cEdgeGeo=new THREE.BufferGeometry();setAttr(cEdgeGeo,'position',cep,3);setAttr(cEdgeGeo,'color',cec,3);setAttr(cEdgeGeo,'aAct',cea,1);cEdgeLines=new THREE.LineSegments(cEdgeGeo,cEdgeMat);cEdgeLines.visible=SHOW_EDGES;scene.add(cEdgeLines);
+  G.cIdx=cIdx;G.clusterAct=ca;
+  tweening=!first;
+  // the header, legend and warnings say what was loaded and what couldn't be
+  document.getElementById('gcount').textContent=`${g.counts.nodes} nodes · ${g.counts.edges} edges`;document.getElementById('seed').textContent=String(g.seed).slice(0,8);
+  legend.innerHTML=KINDS.filter((k)=>g.counts.byKind[k]).map((k)=>`<span id="lg-${k}" style="--c:var(--k-${k})">${KIND_LABEL[k]} ${g.counts.byKind[k]}</span>`).join('');
+  const warn=[...(g.unavailable||[]).map((u)=>u.error),g.dropped?.count?`${g.dropped.count} links point at something that isn't in her systems, so they aren't drawn (e.g. ${g.dropped.examples[0]}).`:'',g.truncated||''].filter(Boolean);
+  document.getElementById('warn').textContent=warn.join('\n');
+  for(const i of fresh){act[i]=1.5;label3d(i,true);}
+  if(fresh.length)document.getElementById('growth').textContent=`she just grew: +${fresh.length} node${fresh.length>1?'s':''}`;
+  applySnapshot();}
+function writeEdgePositions(){if(!G.edges.length)return;G.edges.forEach((e,k)=>{const a=G.ends[k*2],b=G.ends[k*2+1];lpos[k*6]=posCur[a*3];lpos[k*6+1]=posCur[a*3+1];lpos[k*6+2]=posCur[a*3+2];lpos[k*6+3]=posCur[b*3];lpos[k*6+4]=posCur[b*3+1];lpos[k*6+5]=posCur[b*3+2];});edgeGeo.attributes.position.needsUpdate=true;}
+
+// Load, then check for growth now and then (UI polling: the server answers "unchanged" when nothing grew).
+let loading=false,refreshTimer=null;
+async function loadGraph(first=false){if(loading)return;loading=true;try{const r=await fetch(`/api/mind/graph?level=nodes${G.version&&!first?`&since=${G.version}`:''}`);const g=await r.json();if(!r.ok)throw new Error(g.error||r.statusText);if(!g.unchanged)applyGraph(g,first);}catch(err){document.getElementById('warn').textContent=`Her graph couldn't be loaded: ${err.message}. The mind view needs the dashboard's /api/mind/graph; reload once the bot is running.`;}finally{loading=false;}}
+function scheduleRefresh(ms){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>loadGraph(),ms);}
+setInterval(()=>loadGraph(),6000);
+
+// ---------- signals: the bolts that run along real edges ----------
+const MAXS=600;const spos=new Float32Array(MAXS*3),scol=new Float32Array(MAXS*3);const sparks=[];
+const sgeo=new THREE.BufferGeometry();setAttr(sgeo,'position',spos,3);setAttr(sgeo,'color',scol,3);sgeo.setDrawRange(0,0);
+const smat=new THREE.ShaderMaterial({vertexShader:`uniform float uScale;varying vec3 vC;void main(){vC=color;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=3.2*uScale/-mv.z;gl_Position=projectionMatrix*mv;}`,fragmentShader:`varying vec3 vC;void main(){float r=length(gl_PointCoord-0.5);if(r>0.5)discard;float a=smoothstep(0.5,0.0,r);gl_FragColor=vec4(mix(vC,vec3(1.0),0.6)*a*2.0,a);}`,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uScale:{value:1}}});
+{const o=new THREE.Points(sgeo,smat);o.frustumCulled=false;scene.add(o);}
+const BOLTCAP=MAXS*8;const bpos=new Float32Array(BOLTCAP*6),bcol=new Float32Array(BOLTCAP*6),bact=new Float32Array(BOLTCAP*2);
+const bgeo=new THREE.BufferGeometry();setAttr(bgeo,'position',bpos,3);setAttr(bgeo,'color',bcol,3);setAttr(bgeo,'aAct',bact,1);bgeo.setDrawRange(0,0);
+const bmat=new THREE.ShaderMaterial({vertexShader:`attribute float aAct;varying float vA;varying vec3 vC;void main(){vA=aAct;vC=color;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,fragmentShader:`varying float vA;varying vec3 vC;void main(){gl_FragColor=vec4(mix(vC,vec3(1.0),0.5)*vA*2.2,vA);}`,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+{const o=new THREE.LineSegments(bgeo,bmat);o.frustumCulled=false;scene.add(o);}
+// WebGL lines are one pixel wide, so each bolt also gets a glow: soft points along every kink, which read as a
+// thick, bright channel around the thin white-hot line.
+const gpos=new Float32Array(BOLTCAP*3),gcol=new Float32Array(BOLTCAP*3);let gn=0;
+const ggeo=new THREE.BufferGeometry();setAttr(ggeo,'position',gpos,3);setAttr(ggeo,'color',gcol,3);ggeo.setDrawRange(0,0);
+const gmat=new THREE.ShaderMaterial({vertexShader:`uniform float uScale;varying vec3 vC;void main(){vC=color;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=7.0*uScale/-mv.z;gl_Position=projectionMatrix*mv;}`,fragmentShader:`varying vec3 vC;void main(){float r=length(gl_PointCoord-0.5);if(r>0.5)discard;float a=exp(-r*r*14.0);gl_FragColor=vec4(mix(vC,vec3(1.0),0.15)*1.5,a*0.4);}`,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uScale:{value:1}}});
+{const o=new THREE.Points(ggeo,gmat);o.frustumCulled=false;scene.add(o);}
+// A bolt from A to B: fractal (midpoint displacement, 4 levels, so 17 points with kinks at every scale), plus one
+// or two forks that split off partway and die out. Rebuilt every ~90ms, so it crackles.
+function perpBasis(dx,dy,dz){let ux=-dy,uy=dx,uz=0;let ul=Math.hypot(ux,uy,uz);if(ul<1e-4){ux=0;uy=-dz;uz=dy;ul=Math.hypot(ux,uy,uz)||1;}ux/=ul;uy/=ul;uz/=ul;let wx=dy*uz-dz*uy,wy=dz*ux-dx*uz,wz=dx*uy-dy*ux;const wl=Math.hypot(wx,wy,wz)||1;return[ux,uy,uz,wx/wl,wy/wl,wz/wl];}
+function jag(A,B,depth,amp0,r){const dx=B[0]-A[0],dy=B[1]-A[1],dz=B[2]-A[2];const [ux,uy,uz,wx,wy,wz]=perpBasis(dx,dy,dz);let pts=[A,B],amp=amp0;
+  for(let d=0;d<depth;d++){const next=[pts[0]];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];const p=r()*2*amp,q=r()*2*amp;next.push([(a[0]+b[0])/2+ux*p+wx*q,(a[1]+b[1])/2+uy*p+wy*q,(a[2]+b[2])/2+uz*p+wz*q],b);}pts=next;amp*=0.55;}return pts;}
+function boltPath(A,B,seed){let s=seed>>>0;const r=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296-0.5;};
+  const dx=B[0]-A[0],dy=B[1]-A[1],dz=B[2]-A[2];const len=Math.hypot(dx,dy,dz)||1;const main=jag(A,B,4,len*0.13,r);
+  const [ux,uy,uz,wx,wy,wz]=perpBasis(dx,dy,dz);const branches=[];const nb=r()>-0.1?2:1;
+  for(let b=0;b<nb;b++){const at=0.2+(r()+0.5)*0.55;const i=Math.round(at*(main.length-1));const S=main[i];const bl=len*(0.15+(r()+0.5)*0.2);const p=r()*1.4,q=r()*1.4;
+    const E=[S[0]+(dx/len*0.7+ux*p+wx*q)*bl,S[1]+(dy/len*0.7+uy*p+wy*q)*bl,S[2]+(dz/len*0.7+uz*p+wz*q)*bl];branches.push({at:i/(main.length-1),path:jag(S,E,3,bl*0.16,r)});}
+  return{main,branches};}
+function alongPath(path,u){const seg=Math.min(path.length-2,Math.floor(u*(path.length-1)));const f=u*(path.length-1)-seg;const a=path[seg],b=path[seg+1];return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f];}
+const P=(i)=>[posCur[i*3],posCur[i*3+1],posCur[i*3+2]];
+// A node fires: it brightens, and the signal runs along its strongest real edges, one hop, then a fainter second.
+function fireNode(i,amp=1,hops=3){if(i===undefined)return;act[i]=Math.min(1.8,act[i]+amp);const k=G.nodes[i]?.kind;setLegend(k);const ci=G.cIdx?.get(G.nodes[i]?.cluster);if(ci!==undefined)G.clusterAct[ci]=Math.min(1.5,G.clusterAct[ci]+amp*0.6);
+  // three jumps now (owner, 2026-11-09: "stretching a little bit longer"): several strong edges first, then fewer
+  if(hops<=0||sparks.length>=MAXS/5)return;const c=kindColor[k]||kindColor.none;for(const [j,e,w] of neighbors[i].slice(0,hops>=3?6:hops===2?3:2))sparks.push({i,j,e,t:0,amp:amp*0.7*w,c,hops:hops-1});}
+
+// ---------- labels: what just fired, and the clusters when zoomed out ----------
+const labelBox=document.getElementById('labels');const floating=[];
+function label3d(i,fresh){const n=G.nodes[i];if(!n)return;if(floating.length>=7){const old=floating.shift();old.el.remove();}const el=document.createElement('div');el.className='lab';el.style.setProperty('--c',css(`--k-${n.kind}`));el.textContent=(fresh?'+ ':'')+n.label;labelBox.append(el);floating.push({id:n.id,el,t:0});}
+const cluLabels=new Map();
+const v3=new THREE.Vector3();
+function screenOf(p){const r=canvas.getBoundingClientRect();v3.set(p[0],p[1],p[2]).project(camera);return{x:(v3.x*0.5+0.5)*r.width,y:(-v3.y*0.5+0.5)*r.height,behind:v3.z>1};}
+function projectLabels(dt,zoomOut){for(let k=floating.length-1;k>=0;k--){const f=floating[k];f.t+=dt;const i=idx.get(f.id);if(f.t>3.2||i===undefined){f.el.remove();floating.splice(k,1);continue;}const s=screenOf(P(i));f.el.style.left=s.x+'px';f.el.style.top=s.y+'px';f.el.style.opacity=s.behind?'0':f.t>2.4?String(1-(f.t-2.4)/0.8):'1';}
+  // cluster names, the biggest ones, when zoomed out
+  const want=zoomOut>0.5?G.clusters.filter((c)=>!c.id.endsWith(':loose')).sort((a,b)=>b.count-a.count).slice(0,14):[];const keep=new Set(want.map((c)=>c.id));
+  for(const [id,el] of cluLabels)if(!keep.has(id)){el.remove();cluLabels.delete(id);}
+  for(const c of want){let el=cluLabels.get(c.id);if(!el){el=document.createElement('div');el.className='lab cl';el.style.setProperty('--c',css(`--k-${c.kind}`));el.textContent=`${c.label} (${c.count})`;labelBox.append(el);cluLabels.set(c.id,el);}const s=screenOf(c.pos);el.style.left=s.x+'px';el.style.top=s.y+'px';el.style.opacity=s.behind?'0':String(Math.min(1,(zoomOut-0.5)*2));}}
+
+// ---------- each frame ----------
+let snapshot=null,expr={};
+function applySnapshot(){if(!G.nodes.length)return;for(let i=0;i<G.nodes.length;i++)base[i]=0.06;
+  if(snapshot?.buckets)for(const [k,v] of Object.entries(snapshot.buckets)){const i=idx.get(`bucket:${k}`);if(i!==undefined)base[i]=0.05+Math.max(0,Math.min(1,+v||0))*0.45;}
+  for(const [k,v] of Object.entries(expr||{})){const i=idx.get(`body:feeling:${k}`);if(i!==undefined)base[i]=0.05+Math.max(0,Math.min(1,+v||0))*0.45;}
+  if(nodeGeo)nodeGeo.attributes.aBase.needsUpdate=true;}
+function update(dt,zoomOut){const N=G.nodes.length;if(!N||!nodeGeo)return;
+  for(let i=0;i<N;i++)if(act[i]>0)act[i]=Math.max(0,act[i]-dt*1.0);
+  if(G.clusterAct)for(let i=0;i<G.clusterAct.length;i++)if(G.clusterAct[i]>0)G.clusterAct[i]=Math.max(0,G.clusterAct[i]-dt*0.9);
+  // growth: existing nodes glide to where the new layout puts them
+  if(tweening){let moving=false;const k=Math.min(1,dt*2.5);for(let j=0;j<posCur.length;j++){const d=posTgt[j]-posCur[j];if(Math.abs(d)>1e-4){posCur[j]+=d*k;moving=true;}else posCur[j]=posTgt[j];}nodeGeo.attributes.position.needsUpdate=true;writeEdgePositions();if(!moving){tweening=false;nodeGeo.computeBoundingSphere();}}
+  // edges warm with their endpoints
+  for(let k=0;k<G.edges.length;k++){const v=Math.max(act[G.ends[k*2]],act[G.ends[k*2+1]])*0.8;lact[k*2]=lact[k*2+1]=v;}edgeGeo.attributes.aAct.needsUpdate=true;
+  let n=0,bn=0;const flick=performance.now();
+  // A bolt travels for ~1.4s (was 0.8), then hangs on as an afterglow for a moment while the next node fires.
+  const AFTER=0.45;gn=0;const seg=(a,b,c,v)=>{if(bn>=BOLTCAP)return;const o=bn*2;bpos.set(a,o*3);bpos.set(b,o*3+3);for(const q of [o,o+1]){bcol[q*3]=c.r;bcol[q*3+1]=c.g;bcol[q*3+2]=c.b;bact[q]=Math.max(0,Math.min(1,v));}bn++;
+    const g=Math.max(0,Math.min(1,v))*0.9;gpos[gn*3]=(a[0]+b[0])/2;gpos[gn*3+1]=(a[1]+b[1])/2;gpos[gn*3+2]=(a[2]+b[2])/2;gcol[gn*3]=c.r*g;gcol[gn*3+1]=c.g*g;gcol[gn*3+2]=c.b*g;gn++;};
+  for(let s=sparks.length-1;s>=0;s--){const sp=sparks[s];sp.t+=dt*0.72;if(sp.j>=N||sp.t>=1+AFTER){sparks.splice(s,1);continue;}
+    if(sp.t>=1&&!sp.arrived){sp.arrived=true;fireNode(sp.j,sp.amp,sp.hops);}
+    const A=P(sp.i),B=P(sp.j);if(!sp.path||flick-(sp.jit??0)>90){sp.seed=(sp.seed??(flick*7919)|0)+1;sp.path=boltPath(A,B,sp.seed);sp.jit=flick;}
+    const t=Math.min(1,sp.t),main=sp.path.main,head=alongPath(main,t),glow=sp.t>1?1-(sp.t-1)/AFTER:1;
+    if(sp.e!==undefined&&sp.e<G.edges.length)lact[sp.e*2]=lact[sp.e*2+1]=Math.max(lact[sp.e*2],0.6*sp.amp+0.2);
+    if(sp.t<1)for(let k=0;k<6&&n<MAXS;k++){const p=alongPath(main,Math.max(0,t-k*0.03));const f=1-k*0.15;spos[n*3]=p[0];spos[n*3+1]=p[1];spos[n*3+2]=p[2];scol[n*3]=sp.c.r*f;scol[n*3+1]=sp.c.g*f;scol[n*3+2]=sp.c.b*f;n++;}
+    const strength=Math.min(1,sp.amp+0.25)*glow;const segs=main.length-1,upto=t*segs;
+    for(let k=0;k<segs;k++){if(k>upto)break;const b=k+1>upto?head:main[k+1];seg(main[k],b,sp.c,(0.3+0.7*(k/segs))*strength*(0.65+0.35*Math.sin(flick/19+k*1.7)));}
+    for(const br of sp.path.branches){if(t<br.at)continue;const bs=br.path.length-1,bu=Math.min(1,(t-br.at)/0.22)*bs;for(let k=0;k<bs;k++){if(k>bu)break;seg(br.path[k],br.path[k+1],sp.c,0.55*(1-k/bs)*strength);}}}
+  sgeo.setDrawRange(0,n);sgeo.attributes.position.needsUpdate=true;sgeo.attributes.color.needsUpdate=true;
+  bgeo.setDrawRange(0,bn*2);bgeo.attributes.position.needsUpdate=true;bgeo.attributes.color.needsUpdate=true;bgeo.attributes.aAct.needsUpdate=true;
+  ggeo.setDrawRange(0,gn);ggeo.attributes.position.needsUpdate=true;ggeo.attributes.color.needsUpdate=true;
+  nodeGeo.attributes.aAct.needsUpdate=true;nodeGeo.attributes.aVis.needsUpdate=true;if(cluGeo)cluGeo.attributes.aAct.needsUpdate=true;
+  // zoom: far away her mind is clusters; close in, every node and edge
+  nodeMat.uniforms.uFade.value=1-zoomOut*0.85;edgeMat.uniforms.uFade.value=1-zoomOut;clusterMat.uniforms.uFade.value=zoomOut;cEdgeMat.uniforms.uFade.value=zoomOut*0.8;
+  projectLabels(dt,zoomOut);}
+
+// ---------- camera: orbit a target, drag to turn, wheel to zoom, click to inspect ----------
+let yaw=0.25,pitch=0.12,dist=3.6,dragging=false,moved=0,lx=0,ly=0,auto=true;const target=new THREE.Vector3(0,0,0);let flyTo=null;
+const zoomOutOf=()=>Math.max(0,Math.min(1,(dist-2.0)/1.6));
+canvas.addEventListener('pointerdown',(e)=>{dragging=true;moved=0;auto=false;lx=e.clientX;ly=e.clientY;});
+addEventListener('pointerup',(e)=>{if(dragging&&moved<5&&e.target===canvas)pick(e);dragging=false;});
+addEventListener('pointermove',(e)=>{if(dragging){moved+=Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly);yaw+=(e.clientX-lx)*0.006;pitch=Math.max(-1.2,Math.min(1.2,pitch+(e.clientY-ly)*0.006));lx=e.clientX;ly=e.clientY;}else if(e.target===canvas)hover(e);});
+canvas.addEventListener('wheel',(e)=>{flyTo=null;dist=Math.max(0.12,Math.min(7,dist*Math.exp(e.deltaY*0.0012)));},{passive:true});
+const ray=new THREE.Raycaster();const mouse=new THREE.Vector2();
+function hit(e){const r=canvas.getBoundingClientRect();mouse.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(mouse,camera);const zo=zoomOutOf();
+  ray.params.Points.threshold=zo>0.5?0.08:Math.max(0.006,dist*0.012);const obj=zo>0.5?cluPts:nodePts;if(!obj)return null;const h=ray.intersectObject(obj)[0];if(!h)return null;return zo>0.5?{cluster:G.clusters[h.index]}:{node:G.nodes[h.index],i:h.index};}
+const tip=document.getElementById('tip');let hoverAt=0;
+function hover(e){const now=performance.now();if(now-hoverAt<60)return;hoverAt=now;const h=hit(e);if(!h){tip.style.display='none';return;}const r=canvas.getBoundingClientRect();tip.style.display='block';tip.style.left=(e.clientX-r.left+12)+'px';tip.style.top=(e.clientY-r.top+12)+'px';
+  tip.textContent=h.cluster?`${h.cluster.label}: ${h.cluster.count} (${h.cluster.top.slice(0,3).join(', ')})`:`${h.node.label} · ${h.node.kind} · ${h.node.degree} links`;}
+function pick(e){const h=hit(e);if(!h)return;if(h.cluster){focusOn(h.cluster.pos,Math.max(0.5,Math.min(1.8,0.35+Math.sqrt(h.cluster.count)*0.06)));return;}inspect(h.node.id);}
+function focusOn(p,d){auto=false;flyTo={p:new THREE.Vector3(...p),d};}
+function focusNode(id,d=0.45){const i=idx.get(id);if(i===undefined)return;focusOn(P(i),d);fireNode(i,0.8,1);label3d(i,false);}
+document.getElementById('home').onclick=()=>{flyTo={p:new THREE.Vector3(0,0,0),d:3.6};};
+
+// ---------- the inspector: node.html, beside the graph ----------
+const insp=document.getElementById('inspector'),frame=document.getElementById('inspFrame');
+function inspect(id){focusNode(id);insp.style.display='flex';const url=`node.html?id=${encodeURIComponent(id)}`;frame.src=url+'&embed=1';document.getElementById('inspOpen').href=url;document.getElementById('inspTitle').textContent=id;}
+document.getElementById('inspClose').onclick=()=>{insp.style.display='none';frame.src='about:blank';};
+// the inspector says when you walk to a neighbour, so the camera follows
+addEventListener('message',(m)=>{if(m.origin!==location.origin)return;const d=m.data;if(d?.type==='mind-focus'&&typeof d.id==='string'){focusNode(d.id);document.getElementById('inspTitle').textContent=d.id;document.getElementById('inspOpen').href=`node.html?id=${encodeURIComponent(d.id)}`;}});
+
+// The drawing buffer follows the box it's shown in, every time that box changes size, not only on a window resize:
+// measured once at load, before the layout settled, it stayed 2x26 pixels stretched over the whole panel (owner,
+// 2026-11-09: "it's all fuzzy"). Drawn at twice the screen's density at least, so fine detail stays crisp up close.
+function resize(){const r=canvas.parentElement.getBoundingClientRect();if(r.width<4||r.height<4)return;renderer.setPixelRatio(Math.min(3,Math.max(2,devicePixelRatio)));renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();const k=(r.height/150)*renderer.getPixelRatio();nodeMat.uniforms.uMin.value=7*renderer.getPixelRatio();clusterMat.uniforms.uMin.value=10*renderer.getPixelRatio();nodeMat.uniforms.uScale.value=k;clusterMat.uniforms.uScale.value=k;smat.uniforms.uScale.value=k;gmat.uniforms.uScale.value=k;}
+addEventListener('resize',resize);new ResizeObserver(resize).observe(canvas.parentElement);resize();
+let last=performance.now();
+function loop(now){const dt=Math.min(0.1,(now-last)/1000);last=now;if(auto)yaw+=dt*0.12;
+  if(flyTo){const k=Math.min(1,dt*3);target.lerp(flyTo.p,k);dist+=(flyTo.d-dist)*k;if(target.distanceTo(flyTo.p)<1e-3&&Math.abs(flyTo.d-dist)<1e-3)flyTo=null;}
+  camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*dist,target.y+Math.sin(pitch)*dist,target.z+Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(target);
+  update(dt,zoomOutOf());if(replay)stepReplay(dt);renderer.render(scene,camera);drawWave('w1',wave.w1,css('--c-hearing'),'w1v');drawWave('w2',wave.w2,css('--c-intake'),'w2v');drawWave('w3',wave.w3,css('--c-tools'),'w3v');requestAnimationFrame(loop);}
+
+// ---------- replay: how she grew, from the change log (/api/mind/history) ----------
+let replay=null;
+document.getElementById('replay').onclick=async()=>{try{const h=await fetch('/api/mind/history?limit=20000').then((r)=>r.json());if(h.error)throw new Error(h.error);
+  const born=new Map();for(const e of h.entries)if(e.op==='node-added'&&!born.has(e.id))born.set(e.id,e.baseline?(e.since??e.at):e.at);
+  const order=G.nodes.map((n,i)=>[i,born.get(n.id)??0]).sort((a,b)=>a[1]-b[1]);vis.fill(0);replay={order,k:0,per:Math.max(1,order.length/600)};document.getElementById('growth').textContent='replaying how she grew…';
+  }catch(err){document.getElementById('warn').textContent=`Her growth can't be replayed: ${err.message}.`;}};
+function stepReplay(){for(let s=0;s<replay.per&&replay.k<replay.order.length;s++,replay.k++){const i=replay.order[replay.k][0];if(i<vis.length){vis[i]=1;act[i]=1.2;}}if(replay.k>=replay.order.length){replay=null;vis.fill(1);document.getElementById('growth').textContent='';}}
+
+// ---------- buckets, waves, hearing, ticker ----------
+const legend=document.getElementById('legend');
+function setLegend(k){const el=document.getElementById(`lg-${k}`);if(!el)return;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),1500);}
+const DPR=Math.min(2,devicePixelRatio||1);let hist={};const stamps={lines:[],acts:[],fired:[]};let intakeEnergy=[];const wave={w1:[],w2:[],w3:[]};
+const rate=(arr)=>{const now=Date.now();while(arr.length&&now-arr[0]>60_000)arr.shift();return arr.length;};
+function pushWave(){const now=Date.now();const win=(arr,ms)=>arr.filter((t)=>now-t<ms).length;wave.w1.push(win(stamps.lines,10_000));wave.w3.push(win(stamps.acts,10_000)+win(stamps.fired,10_000)*3);wave.w2.push(intakeEnergy.filter((x)=>now-x.at<10_000).reduce((s,x)=>s+x.v,0));for(const k in wave)if(wave[k].length>160)wave[k].shift();
+  document.getElementById('lpm').textContent=rate(stamps.lines);document.getElementById('tpm').textContent=rate(stamps.acts);document.getElementById('fpm').textContent=rate(stamps.fired);}
+function drawWave(id,data,color,label){const c=document.getElementById(id);const r=c.getBoundingClientRect();if(c.width!==Math.round(r.width*DPR)){c.width=r.width*DPR;c.height=r.height*DPR;}const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);x.clearRect(0,0,r.width,r.height);const max=Math.max(1,...data);x.lineWidth=1.6;x.strokeStyle=color;x.shadowBlur=10;x.shadowColor=color;x.beginPath();for(let i=0;i<data.length;i++){const v=data[i]/max;const px=i/159*r.width,py=r.height-5-v*(r.height-12);i?x.lineTo(px,py):x.moveTo(px,py);}x.stroke();x.shadowBlur=0;x.fillStyle=color;x.globalAlpha=.08;x.lineTo(r.width,r.height);x.lineTo(0,r.height);x.fill();x.globalAlpha=1;document.getElementById(label).textContent=data.length?data[data.length-1].toFixed(data===wave.w2?1:0):'';}
+function renderBuckets(){if(!snapshot)return;const feel=new Set(snapshot.feelings||[]);const thr=snapshot.thresholds||{};const keys=Object.keys(snapshot.buckets).sort((a,b)=>(feel.has(a)-feel.has(b))||a.localeCompare(b));const el=document.getElementById('buckets');let html='',group='';
+  for(const k of keys){const v=+snapshot.buckets[k]||0;const isF=feel.has(k);const g=isF?'feelings':'wants';if(g!==group){group=g;html+=`<div class="group">${g}</div>`;}(hist[k]??=[]).push(v);if(hist[k].length>120)hist[k].shift();const fired=snapshot.last_action&&snapshot.last_action.bucket===k&&Date.now()-snapshot.last_action.at<8000;
+    html+=`<div class="bucket ${isF?'feel':''} ${fired?'fired':''}" data-k="${esc(k)}" title="inspect bucket:${esc(k)}"><span class="name">${esc(k.replace(/_/g,' '))}</span><span class="bar"><span class="fill" style="width:${(v*100).toFixed(1)}%"></span>${!isF&&thr[k]!=null?`<span class="thr" style="left:${(thr[k]*100).toFixed(1)}%"></span>`:''}<canvas class="spark"></canvas></span><span class="val">${v.toFixed(2)}</span></div>`;}
+  el.innerHTML=html;for(const row of el.querySelectorAll('.bucket')){const k=row.dataset.k,c=row.querySelector('.spark'),r=c.getBoundingClientRect();c.width=r.width*DPR;c.height=r.height*DPR;const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);const d=hist[k];x.strokeStyle='rgba(255,255,255,.35)';x.lineWidth=1;x.beginPath();d.forEach((v,i)=>{const px=i/119*r.width,py=r.height-1-v*(r.height-2);i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();}
+  document.getElementById('total').textContent=`${snapshot.total} (cap ${snapshot.cap})`;const la=snapshot.last_action;document.getElementById('lastWant').textContent=la?`${la.bucket} ${Math.round((Date.now()-la.at)/60000)} min ago`:'none yet';}
+document.getElementById('buckets').addEventListener('click',(e)=>{const row=e.target.closest('.bucket');if(row)inspect(`bucket:${row.dataset.k}`);});
+async function poll(){try{snapshot=await fetch('/api/pressure').then((r)=>r.json());renderBuckets();applySnapshot();}catch{}finally{setTimeout(poll,300);}}
+const recentLines=[];
+// One line about an event, from its own fields.
+function note(e){const skip=new Set(['type','time','nodes','unknownNodes','replay','text','speaker','conversation']);const parts=[];if(e.text)parts.push(`${e.speaker??''}: ${e.text}`);else if(e.speaker)parts.push(e.speaker);for(const [k,v] of Object.entries(e)){if(skip.has(k)||v==null||(typeof v==='object'&&!Array.isArray(v)))continue;parts.push(`${k} ${Array.isArray(v)?v.slice(0,3).join('; '):v}`);}return parts.join(', ').slice(0,180);}
+function tick(e,kind){const rows=document.getElementById('rows');const d=document.createElement('div');d.className='ev';d.style.setProperty('--c',`var(--k-${kind||'none'})`);if(e.nodes?.length){d.dataset.node=e.nodes[0];d.title=`touched ${e.nodes.join(', ')}`;}d.innerHTML=`<span class="t">${new Date(e.time).toLocaleTimeString([],{hour12:false})}</span><span class="k"></span><span class="m"></span>`;d.querySelector('.k').textContent=e.type;d.querySelector('.m').textContent=note(e);rows.prepend(d);while(rows.children.length>33)rows.lastChild.remove();
+  if(e.type==='heard'){stamps.lines.push(e.time);hearLine(e);}
+  if(e.type==='intake'){const v=Object.entries(e).filter(([k,x])=>typeof x==='number'&&k!=='time').reduce((s,[,x])=>s+x,0);intakeEnergy.push({at:e.time,v});intakeEnergy=intakeEnergy.slice(-200);attachChips(e);}
+  if(['tool-call','hands','thought','intuition','reaction','curiosity','remembered'].includes(e.type))stamps.acts.push(e.time);
+  if(e.type==='pressure'&&e.fired)stamps.fired.push(e.time);}
+document.getElementById('rows').addEventListener('click',(e)=>{const row=e.target.closest('.ev');if(row?.dataset.node)inspect(row.dataset.node);});
+function hearLine(e){const box=document.getElementById('lines');const d=document.createElement('div');d.className='line';d.dataset.speaker=e.speaker;d.innerHTML=`<div class="who"></div><div class="txt"></div><div class="chips"></div>`;d.querySelector('.who').textContent=`${e.speaker} · ${new Date(e.time).toLocaleTimeString([],{hour12:false})}${e.ignored?' · overheard':''}`;d.querySelector('.txt').textContent=e.text||'';box.prepend(d);recentLines.unshift(d);while(box.children.length>10)box.lastChild.remove();recentLines.length=Math.min(recentLines.length,10);}
+function attachChips(e){const d=recentLines.find((x)=>x.dataset.speaker===e.speaker&&!x.dataset.read);if(!d)return;d.dataset.read='1';const chips=d.querySelector('.chips');for(const [k,v] of Object.entries(e)){if(typeof v!=='number'||k==='time')continue;const s=document.createElement('span');s.className='chip'+(['contempt','irritant','yelling','quiet'].includes(k)?' hot':'');s.textContent=`${k.replace(/_/g,' ')} ${v}`;chips.append(s);}}
+let capTimer=null;function cap(title,text){document.getElementById('capTitle').textContent=title;document.getElementById('capText').textContent=String(text||'').slice(0,180);clearTimeout(capTimer);capTimer=setTimeout(()=>{document.getElementById('capTitle').textContent='quiet';document.getElementById('capText').textContent='nothing fires unless something happened';},8000);}
+
+// ---------- her activity: each event lights the real nodes it touched (mapped on the server) ----------
+function onEvent(e){const ids=(e.nodes||[]).filter((id)=>idx.has(id));if(e.unknownNodes?.length)scheduleRefresh(700);
+  const kind=ids.length?G.nodes[idx.get(ids[0])].kind:null;tick(e,kind);if(e.replay)return; // the replayed backlog only fills the ticker
+  const amp=e.type==='pressure'&&e.fired?1.6:e.type==='tool-call'&&e.ok===false?1.4:e.type==='error'?1.3:1;
+  for(const id of ids.slice(0,8)){const i=idx.get(id);fireNode(i,amp,3);label3d(i,false);}
+  if(ids.length)cap(ids.map((id)=>G.nodes[idx.get(id)].label).slice(0,3).join(' · '),`${e.type}: ${note(e)}`);
+  if(['remembered','topic','concepts-learned','experience','reward','journal','discovery'].includes(e.type))scheduleRefresh(1500);}
+function connect(){const es=new EventSource('/api/mind/events');const conn=document.getElementById('conn'),dot=document.getElementById('dot');es.onopen=()=>{conn.textContent='live';dot.style.background='#22c55e';};es.onerror=()=>{conn.textContent='reconnecting';dot.style.background='#ef4444';};
+  es.onmessage=(m)=>{let e;try{e=JSON.parse(m.data);}catch{return;}if(!e.type||e.type==='context')return;onEvent(e);};}
+
+// ---------- her body, live: the Studio stream (mouth frames, expressions, blinks and glances) ----------
+// Mouth frames fire body:mouth in step with the sound; expressions set the glow of her feeling nodes and
+// fire the ones that rose; blinks and glances (reported by the Studio page) fire body:blink / body:glance.
+let mouthTimers=[];
+function bodyFire(id,amp,hops=0){const i=idx.get(id);if(i!==undefined)fireNode(i,amp,hops);}
+function liveBody(){const es=new EventSource('/api/avatar/live');let primed=false;es.onopen=()=>{primed=false;setTimeout(()=>primed=true,900);};es.onmessage=(m)=>{let e;try{e=JSON.parse(m.data);}catch{return;}
+  if(e.type==='expression'&&e.expression){const f=e.expression.feelings??e.expression;if(f&&typeof f==='object'&&(e.expression.character??e.character??'main')==='main'){const prev=expr;expr=f;applySnapshot();if(primed)for(const [k,v] of Object.entries(f))if(+v-(+prev[k]||0)>=0.1)bodyFire(`body:feeling:${k}`,+v,1);}}
+  if(!primed)return; // the opening state replay sets the glow, it doesn't fire
+  if(e.type==='discord-speech'&&e.speech){const p=e.speech;if(p.type==='start'&&Array.isArray(p.frames)&&(!p.character||p.character==='main')){for(const t of mouthTimers)clearTimeout(t);mouthTimers=[];bodyFire('body:mouth',0.8,1);
+      p.frames.forEach((f,i)=>{const open=Math.max(0,Math.min(1,+f.open||0));if(open<0.12)return;mouthTimers.push(setTimeout(()=>bodyFire('body:mouth',open*0.6,0),i*(p.frameMs||40)));});}
+    if(p.type==='stop'){for(const t of mouthTimers)clearTimeout(t);mouthTimers=[];}}
+  if(e.type==='beat'&&Array.isArray(e.beats))for(const b of e.beats)if(b.character==='main'||!b.character)bodyFire(`body:${b.kind}`,Math.min(1.2,0.4*b.n),0);
+  if(e.type==='appearance'&&e.appearance&&(e.appearance.character??'main')==='main'){for(const [k,v] of Object.entries(e.appearance)){if(lastLook&&lastLook[k]!==v)bodyFire(`body:appearance:${k}`,1,1);}lastLook=e.appearance;}};}
+let lastLook=null;
+fetch('/api/avatar/appearance/main').then((r)=>r.json()).then((a)=>{lastLook=a;}).catch(()=>{});
+
+setInterval(pushWave,500);poll();await loadGraph(true);connect();liveBody();requestAnimationFrame(loop);
+</script>
+</body>
+</html>

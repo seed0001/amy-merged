@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync} from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {createAvatarView,avatarView} from './avatar-view.js';
+import {enabledTools,runTool} from './tools.js';
+test('size and zoom persist independently and presets fit the selected size',()=>{
+  const file=path.join(mkdtempSync(path.join(os.tmpdir(),'champ-view-')),'view.json');const events=[];
+  const view=createAvatarView(file,state=>events.push(state));
+  view.set({scale:1.5});assert.equal(view.get().zoom,1);
+  view.set({zoom:2});assert.equal(view.get().scale,1.5);
+  view.set({frame:'body'});assert.equal(view.get().zoom,1/1.5);
+  view.set({frame:'face',zoom:1.8});assert.equal(view.get().zoom,1.8);
+  assert.deepEqual(createAvatarView(file).get(),view.get());
+  const before=view.get();assert.throws(()=>view.set({scale:1.1,zoom:0}),/zoom must/);assert.deepEqual(view.get(),before);
+  assert.throws(()=>view.set({frame:'unknown'}),/no "unknown" frame.*face.*bust.*body/);
+  assert.throws(()=>view.set({scale:3}),/scale must/);
+  view.set({},true);assert.deepEqual(view.get(),{scale:1,zoom:1,frame:'body'});assert.equal(events.length,5);
+});
+test('avatar view tool supports face and full-body framing without empty fields resetting size',async()=>{
+  const ctx={perms:{owner:true},speaker:{id:'dashboard'},userText:'Zoom in on my avatar'};
+  const schema=enabledTools(ctx).find(t=>t.function.name==='avatar_view').function.parameters.properties;
+  assert.match(schema.scale.description,/Use -1 when not needed/);
+  await runTool('avatar_view',{action:'set',scale:1.4,zoom:-1,frame:''},ctx);
+  await runTool('avatar_view',{action:'set',scale:-1,zoom:2,frame:'face'},ctx);
+  assert.deepEqual(avatarView.get(),{scale:1.4,zoom:2,frame:'face'});
+  await runTool('avatar_view',{action:'set',frame:'body'},ctx);assert.equal(avatarView.get().zoom,1/1.4);
+  await runTool('avatar_view',{action:'reset'},ctx);assert.deepEqual(avatarView.get(),{scale:1,zoom:1,frame:'body'});
+});

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where She Was Torn</title>
+<style>
+  /* Where he was torn (owner, 2026-11-11): the close calls in his replies (from the word odds his brain reports), the
+     branch he didn't take, and the wants that nearly won. Reads GET /api/conflicts; branches with POST
+     /api/conflicts/:id/branch (conflicts.js). */
+  :root {
+    --bg: #f6f6f8; --panel: #ffffff; --panel-2: #f0f0f4; --text: #18181b; --muted: #6b6b76; --border: #e3e3e8;
+    --accent: #5865f2; --accent-text: #fff; --fork: #c27c0e; --fork-bg: #fff3dc; --alt: #2f80c4; --bad: #d33a3a; --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111114; --panel: #1a1a1f; --panel-2: #23232a; --text: #ececf1; --muted: #9a9aa6; --border: #2d2d35;
+      --accent: #7983ff; --fork: #f0b44c; --fork-bg: #3a2f16; --alt: #5aa9ec; --bad: #ff6b6b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--panel); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  nav { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  nav button { background: var(--panel-2); color: var(--text); border: 0; padding: 7px 10px; border-radius: 8px; cursor: pointer; font: inherit; }
+  nav button.on, nav button:hover { background: var(--accent); color: var(--accent-text); }
+  main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; display: grid; gap: 14px; }
+  .note { color: var(--muted); font-size: 13px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .reply { white-space: pre-wrap; word-wrap: break-word; }
+  .fork { background: var(--fork-bg); color: var(--fork); border-radius: 4px; padding: 0 2px; cursor: pointer; font-weight: 600; border-bottom: 2px solid var(--fork); }
+  .fork.sel { outline: 2px solid var(--fork); }
+  .detail { margin-top: 10px; padding: 10px 12px; background: var(--panel-2); border-radius: 10px; font-size: 13px; }
+  .bar { display: grid; grid-template-columns: 140px 1fr 50px; gap: 8px; align-items: center; margin: 3px 0; }
+  .bar .w { font-family: ui-monospace, Consolas, monospace; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+  .track { height: 9px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .track i { display: block; height: 100%; background: var(--fork); }
+  .track i.alt { background: var(--alt); }
+  .v { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  button.act { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px; padding: 6px 10px; font: inherit; cursor: pointer; margin-top: 8px; }
+  button.act:disabled { opacity: .5; cursor: default; }
+  .branch { margin-top: 10px; display: grid; gap: 8px; }
+  .branch .col { padding: 10px 12px; border-radius: 10px; background: var(--panel-2); white-space: pre-wrap; }
+  .branch .col b { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .diff { font-style: italic; }
+  .err { color: var(--bad); font-size: 13px; margin-top: 6px; }
+  .want .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .chip { padding: 2px 9px; border-radius: 99px; background: var(--panel-2); font-size: 12.5px; }
+  .chip.won { background: var(--accent); color: var(--accent-text); }
+  .chip.blocked { opacity: .65; text-decoration: line-through; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Where she was torn</h1>
+    <div class="sub">Close calls in her replies and her wants, and the branches she didn't take.</div>
+  </div>
+  <nav id="tabs">
+    <button data-kind="" class="on">Everything</button>
+    <button data-kind="fork">Replies</button>
+    <button data-kind="branch">Branches</button>
+    <button data-kind="want">Wants</button>
+    <button id="reload" title="Load the newest">↻</button>
+  </nav>
+</header>
+<main>
+  <p class="note">Each highlighted word is a place where what she said only narrowly beat another word, from the odds her brain reports for every word. Click one to see what nearly won, and to write the branch she didn't take: the same reply sent down the other word and continued by the same brain. This shows what she weighed, word by word and want by want. It can't show an intention behind it.</p>
+  <div id="list"></div>
+</main>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pct = (p) => `${Math.round(p * 100)}%`;
+  const when = (ms) => new Date(ms).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  let kind = '';
+
+  async function load() {
+    const res = await fetch(`/api/conflicts?limit=80${kind ? `&kind=${kind}` : ''}`);
+    const data = await res.json().catch(() => ({ error: `The dashboard answered ${res.status}.` }));
+    if (!res.ok) { $('#list').innerHTML = `<div class="err">${esc(data.error)}</div>`; return; }
+    $('#list').innerHTML = data.items.length ? data.items.map(card).join('') : '<div class="empty">No close calls on record yet. They appear as she talks, whenever her brain reports its word odds.</div>';
+  }
+
+  function forkReply(r) {
+    let html = '', at = 0;
+    for (const f of [...r.forks].sort((a, b) => a.offset - b.offset)) {
+      if (f.offset < at) continue;
+      html += esc(r.text.slice(at, f.offset));
+      html += `<span class="fork" data-r="${r.id}" data-f="${f.index}" title="${esc(f.chosen.text.trim())} ${pct(f.chosen.p)} vs ${esc(f.rivals[0].text.trim())} ${pct(f.rivals[0].p)}">${esc(f.chosen.text)}</span>`;
+      at = f.offset + f.chosen.text.length;
+    }
+    return html + esc(r.text.slice(at));
+  }
+
+  function card(r) {
+    const head = `<div class="meta"><span>#${r.id}</span><span>${when(r.at)}</span>`;
+    if (r.kind === 'fork') return `<div class="card" id="c${r.id}">${head}<span>her reply${r.said_to ? ` to ${esc(r.said_to)}` : ''}</span><span>${esc(r.provider ?? '')} ${esc(r.model ?? '')}</span><span>${r.forks.length} close call${r.forks.length === 1 ? '' : 's'}</span></div>
+      <div class="reply">${forkReply(r)}</div><div class="detail" hidden></div>${r.canBranch ? '' : '<div class="note" style="margin-top:6px">Its full context isn\'t held any more (only her last 20 replies since she started are), so it can\'t be branched; the close calls are still here.</div>'}<div class="branch"></div></div>`;
+    if (r.kind === 'branch') return `<div class="card">${head}<span>branch of #${r.of}</span><span>"${esc(r.took.text.trim())}" ${pct(r.took.p)} instead of "${esc(r.chosen.text.trim())}" ${pct(r.chosen.p)}</span></div>${branchHtml(r)}</div>`;
+    return `<div class="card want">${head}<span>her wants</span></div><div>Acted on <b>${esc(r.chose)}</b> (${r.over >= 0 ? '+' : ''}${r.over} over its line). Right behind it:</div>
+      <div class="chips"><span class="chip won">${esc(r.chose)}</span>${r.close.map((c) => `<span class="chip">${esc(c.want)} ${c.over >= 0 ? '+' : ''}${c.over}</span>`).join('')}${r.blocked.map((b) => `<span class="chip blocked" title="wanted, but couldn't act on it yet">${esc(b)}</span>`).join('')}</div></div>`;
+  }
+
+  const branchHtml = (b) => `<div class="branch"><div class="col"><b>What she said</b>${esc(b.actual)}</div><div class="col"><b>What she'd have said</b>${esc(b.instead)}</div>${b.difference ? `<div class="diff">${esc(b.difference)}</div>` : ''}</div>`;
+
+  document.addEventListener('click', async (e) => {
+    const tab = e.target.closest('#tabs button[data-kind]');
+    if (tab) { kind = tab.dataset.kind; for (const b of document.querySelectorAll('#tabs button[data-kind]')) b.classList.toggle('on', b === tab); load(); return; }
+    if (e.target.id === 'reload') { load(); return; }
+    const f = e.target.closest('.fork');
+    if (f) {
+      const cardEl = f.closest('.card');
+      for (const x of cardEl.querySelectorAll('.fork')) x.classList.toggle('sel', x === f);
+      const items = (await (await fetch(`/api/conflicts?kind=fork&limit=200`)).json()).items;
+      const r = items.find((x) => x.id === Number(f.dataset.r));
+      const fork = r?.forks.find((x) => x.index === Number(f.dataset.f));
+      if (!fork) return;
+      const d = cardEl.querySelector('.detail');
+      d.hidden = false;
+      const max = Math.max(fork.chosen.p, ...fork.rivals.map((x) => x.p), 0.01);
+      d.innerHTML = `<div class="bar"><span class="w">${esc(fork.chosen.text)}</span><span class="track"><i style="width:${(fork.chosen.p / max) * 100}%"></i></span><span class="v">${pct(fork.chosen.p)}</span></div>`
+        + fork.rivals.map((x) => `<div class="bar"><span class="w">${esc(x.text)}</span><span class="track"><i class="alt" style="width:${(x.p / max) * 100}%"></i></span><span class="v">${pct(x.p)}</span></div>`).join('')
+        + (r.canBranch ? `<button class="act" data-branch="${r.id}" data-f="${fork.index}">What if "${esc(fork.rivals[0].text.trim())}" had won?</button>` : '');
+      return;
+    }
+    const go = e.target.closest('[data-branch]');
+    if (go) {
+      go.disabled = true; go.textContent = 'Writing the other branch…';
+      const cardEl = go.closest('.card');
+      const res = await fetch(`/api/conflicts/${go.dataset.branch}/branch`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fork: Number(go.dataset.f) }) });
+      const data = await res.json().catch(() => ({ error: `The dashboard answered ${res.status}.` }));
+      if (!res.ok) { go.insertAdjacentHTML('afterend', `<div class="err">${esc(data.error)}</div>`); go.disabled = false; go.textContent = 'Try again'; return; }
+      cardEl.querySelector('.branch').outerHTML = branchHtml(data);
+      go.remove();
+    }
+  });
+  load();
+})();
+</script>
+</body>
+</html>

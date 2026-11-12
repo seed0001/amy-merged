@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Her Life</title>
+<style>
+  /* Her life (owner, 2026-11-10): who she knows, what she knows about them and how they make her feel, her
+     subjects, wants and goals, all on one page. Read-only: everything comes from GET /api/life (life-view.js). */
+  :root {
+    --bg: #f6f6f8; --panel: #ffffff; --panel-2: #f0f0f4; --text: #18181b; --muted: #6b6b76;
+    --border: #e3e3e8; --accent: #5865f2; --accent-text: #fff; --good: #1f9d55; --bad: #d33a3a; --warn: #c27c0e;
+    --love: #d6457a; --trust: #2f80c4; --radius: 12px; --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111114; --panel: #1a1a1f; --panel-2: #23232a; --text: #ececf1; --muted: #9a9aa6;
+      --border: #2d2d35; --accent: #7983ff; --good: #3ecf7a; --bad: #ff6b6b; --warn: #f0b44c; --love: #ff6fa3; --trust: #5aa9ec;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--panel); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+  header img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--panel-2); }
+  header h1 { font-size: 16px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  nav { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  nav a, nav button { background: var(--panel-2); color: var(--text); border: 0; padding: 7px 10px; border-radius: 8px; cursor: pointer; font: inherit; text-decoration: none; }
+  nav a:hover, nav button:hover { background: var(--accent); color: var(--accent-text); }
+  .jump { display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 20px; border-bottom: 1px solid var(--border); background: var(--panel); position: sticky; top: 65px; z-index: 1; }
+  .jump a { color: var(--muted); text-decoration: none; padding: 4px 9px; border-radius: 8px; font-size: 13px; }
+  .jump a:hover { background: var(--panel-2); color: var(--text); }
+  main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 80px; }
+  section { margin-bottom: 28px; scroll-margin-top: 120px; }
+  section > h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .grid { display: grid; gap: 14px; }
+  .cols { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .people { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+  @media (max-width: 420px) { .people, .cols { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 640px) { header { position: static; } .jump { position: static; } section { scroll-margin-top: 10px; } }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; min-width: 0; }
+  .panel h3 { margin: 0 0 8px; font-size: 14px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .quote { font-size: 16px; line-height: 1.45; margin: 0; }
+  .chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--panel-2); color: var(--muted); margin: 0 4px 4px 0; white-space: nowrap; }
+  .chip.stage { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); font-weight: 600; }
+  .chip.love { background: color-mix(in srgb, var(--love) 22%, transparent); color: var(--text); }
+  .chip.pain { background: color-mix(in srgb, var(--bad) 20%, transparent); color: var(--text); }
+  .chip.owner { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--text); }
+  .bar { display: grid; grid-template-columns: 118px 1fr 38px; align-items: center; gap: 8px; margin: 3px 0; font-size: 12.5px; }
+  .bar .track { position: relative; height: 8px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
+  .bar .fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--accent); }
+  .bar .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); opacity: .55; }
+  .bar.wide { grid-template-columns: minmax(120px, 34%) 1fr 38px; }
+  /* Long labels (her wants): the label on its own line above the bar, never cut off. */
+  .bar.stack { grid-template-columns: 1fr 38px; row-gap: 2px; margin: 6px 0; }
+  .bar.stack .name { grid-column: 1 / -1; white-space: normal; }
+  .bar .n { text-align: right; font: 11.5px var(--mono); color: var(--muted); }
+  .bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fill.love { background: var(--love); } .fill.trust { background: var(--trust); } .fill.pain { background: var(--bad); } .fill.good { background: var(--good); } .fill.warn { background: var(--warn); }
+  .person-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .person-head h3 { margin: 0; font-size: 17px; }
+  .aim { border-left: 3px solid var(--accent); padding: 4px 10px; margin: 10px 0; background: var(--panel-2); border-radius: 0 8px 8px 0; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 12.5px; user-select: none; }
+  summary:hover { color: var(--text); }
+  ul.list { list-style: none; margin: 8px 0 0; padding: 0; }
+  ul.list li { padding: 6px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+  ul.list li:last-child { border-bottom: 0; }
+  ul.list time { color: var(--muted); font: 11px var(--mono); margin-right: 6px; }
+  .mem-search { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; font: inherit; margin-top: 8px; }
+  .scroll { max-height: 340px; overflow-y: auto; }
+  .timeline li { display: grid; grid-template-columns: 92px 1fr; gap: 8px; }
+  .problems { border-color: var(--bad); }
+  .empty { color: var(--muted); font-style: italic; }
+  .qa dt { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .qa dd { margin: 2px 0 0; }
+  .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; margin: 6px 0 2px; }
+  .stats div { font-size: 12px; color: var(--muted); }
+  .stats b { display: block; font-size: 18px; color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <img id="avatar" alt="">
+  <div>
+    <h1><span id="name">Her</span>'s life</h1>
+    <div class="sub" id="when">Loading…</div>
+  </div>
+  <nav>
+    <button id="refresh" title="Read her life again now">Refresh</button>
+    <a href="/">Dashboard</a>
+    <a href="/mind.html">Mind ↗</a>
+  </nav>
+</header>
+<div class="jump">
+  <a href="#now">Right now</a><a href="#people">People</a><a href="#subjects">Subjects</a><a href="#wants">Wants</a>
+  <a href="#goals">Goals</a><a href="#self">Who she is</a><a href="#lately">Lately</a><a href="#taste">Taste</a>
+</div>
+<main>
+  <section id="problemsBox" hidden><div class="panel problems"><h3>Parts that couldn't be read</h3><ul class="list" id="problems"></ul></div></section>
+  <section id="now"><h2>Right now</h2><div class="grid cols" id="nowGrid"></div></section>
+  <section id="people"><h2>People she knows</h2><div class="grid people" id="peopleGrid"></div></section>
+  <section id="subjects"><h2>Subjects she's into</h2><div class="panel" id="subjectsBox"></div></section>
+  <section id="wants"><h2>What she wants</h2><div class="grid cols" id="wantsGrid"></div></section>
+  <section id="goals"><h2>Goals and direction</h2><div class="grid cols" id="goalsGrid"></div></section>
+  <section id="self"><h2>Who she is, as she's worked it out</h2><div class="panel" id="selfBox"></div></section>
+  <section id="lately"><h2>Lately</h2><div class="grid cols" id="latelyGrid"></div></section>
+  <section id="taste"><h2>Her taste</h2><div class="panel pre" id="tasteBox"></div></section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const when = (t) => {
+  if (!t) return '';
+  const d = typeof t === 'number' ? new Date(t) : new Date(String(t).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(t)) ? '' : 'Z'));
+  if (isNaN(d)) return '';
+  const m = Math.round((Date.now() - d) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  if (m < 48 * 60) return `${Math.round(m / 60)} h ago`;
+  return d.toLocaleDateString();
+};
+const bar = (name, value, { cls = '', mark = null, title = '', wide = false, stack = false } = {}) =>
+  `<div class="bar${wide ? ' wide' : ''}${stack ? ' stack' : ''}" title="${esc(title || name)}"><span class="name">${esc(name)}</span><span class="track"><span class="fill ${cls}" style="width:${Math.max(0, Math.min(100, value))}%"></span>${mark != null ? `<span class="mark" style="left:${mark}%" title="fires at ${mark}"></span>` : ''}</span><span class="n">${Math.round(value)}</span></div>`;
+const empty = (text) => `<div class="empty">${esc(text)}</div>`;
+const panel = (title, body) => `<div class="panel"><h3>${esc(title)}</h3>${body}</div>`;
+
+const LOVE = new Set(['crush', 'falling', 'in love', 'committed']);
+const PAIN = new Set(['hurt', 'estranged', 'heartbroken']);
+const FEEL = [['closeness', 'closeness', 'good'], ['attraction', 'attraction', 'love'], ['spark', 'spark right now', 'love'], ['rush', 'rush of something new', 'love'], ['trust', 'trust', 'trust'], ['commitment', 'commitment', 'love'], ['hurt', 'hurt', 'pain'], ['resentment', 'resentment', 'pain'], ['jealousy', 'jealousy', 'warn']];
+
+function person(p) {
+  const r = p.relationship;
+  const stageCls = r ? (LOVE.has(r.stage) ? 'love' : PAIN.has(r.stage) ? 'pain' : 'stage') : 'stage';
+  const feels = r ? FEEL.filter(([k]) => r.feelings[k] > 0 || k === 'trust' || k === 'closeness').map(([k, label, cls]) => bar(label, r.feelings[k], { cls })).join('') : empty('No relationship read yet: it starts with the first line they say to her.');
+  const aim = p.aim ? `<div class="aim"><div class="small muted">Where she's heading with ${esc(p.name)} · ${p.aim.progress}% there · set ${esc(when(p.aim.since))}</div>${esc(p.aim.aim)}${p.aim.why ? `<div class="small muted">because ${esc(p.aim.why)}</div>` : ''}</div>` : `<div class="aim"><span class="muted small">No direction with ${esc(p.name)} yet.</span></div>`;
+  const miles = r?.milestones?.length ? `<details><summary>How it's gone between them (${r.milestones.length})</summary><ul class="list timeline">${r.milestones.slice().reverse().map((m) => `<li><time>${esc(when(m.at))}</time><span><b>${esc(m.from)} → ${esc(m.to)}</b>${m.why ? ` <span class="muted">· ${esc(m.why)}</span>` : ''}</span></li>`).join('')}</ul></details>` : '';
+  const mems = p.memories.length
+    ? `<details ${p.memories.length <= 6 ? 'open' : ''}><summary>What she knows about ${esc(p.name)} (${p.memories.length})</summary><input class="mem-search" placeholder="Search what she knows…" data-search="${esc(p.id)}"><ul class="list scroll" id="mem-${esc(p.id)}">${p.memories.slice().reverse().map((m) => `<li data-text="${esc(m.text.toLowerCase())}"><time>${esc(when(m.at))}</time>${esc(m.text)}</li>`).join('')}</ul></details>`
+    : `<div class="small muted" style="margin-top:8px">She hasn't kept any memories about ${esc(p.name)} yet.</div>`;
+  return `<div class="panel">
+    <div class="person-head"><h3>${esc(p.name)}</h3>${p.owner ? '<span class="chip owner">her owner</span>' : `<span class="chip">${esc(p.tier)}</span>`}${r ? `<span class="chip ${stageCls}">${esc(r.stage)}</span>` : ''}</div>
+    <div class="small muted">${p.username ? `@${esc(p.username)} · ` : ''}${p.last_seen ? `last seen ${esc(when(p.last_seen))}` : 'not seen yet'}${p.first_seen ? ` · first met ${esc(when(p.first_seen))}` : ''}</div>
+    <div style="margin-top:10px">${feels}${bar('bond', p.bond, { cls: 'good', title: 'How bonded she is (her pressure system)' })}${p.missing_them ? bar('missing them', p.missing_them, { cls: 'love' }) : ''}</div>
+    ${aim}${miles}${mems}
+  </div>`;
+}
+
+function render(v) {
+  $('#name').textContent = v.name || 'Her';
+  document.title = `${v.name || 'Her'}'s life`;
+  $('#when').textContent = `Read ${new Date(v.at).toLocaleTimeString()} · read-only`;
+
+  $('#problemsBox').hidden = !v.problems?.length;
+  $('#problems').innerHTML = (v.problems ?? []).map((x) => `<li><b>${esc(x.part)}</b>: ${esc(x.why)}</li>`).join('');
+
+  // Right now: how she feels, her strongest wants, what she believes about herself, and her overall aim.
+  const w = v.wants;
+  const firing = (w?.wants ?? []).filter((x) => x.threshold != null && x.level >= x.threshold);
+  $('#nowGrid').innerHTML = [
+    panel('What she believes about herself', v.self?.believes ? `<p class="quote">“${esc(v.self.believes)}”</p><div class="small muted">${esc(when(v.self.believed_at))}</div>` : empty('She hasn\'t come to a view of herself yet.')),
+    panel('How she feels', w ? w.feelings.slice(0, 8).map((f) => bar(f.label, f.level, { cls: 'good', wide: true })).join('') : empty('Her feelings couldn\'t be read.')),
+    panel('Pulling at her most', w ? w.wants.slice(0, 6).map((x) => bar(x.label, x.level, { stack: true, mark: x.threshold, title: x.want })).join('') + (firing.length ? `<div class="small muted" style="margin-top:6px">Ready to act on: ${firing.map((x) => esc(x.label)).join(', ')}</div>` : '') : empty('Her wants couldn\'t be read.')),
+    panel('Overall, she\'s going for', v.direction?.overall?.aim ? `<p class="quote">${esc(v.direction.overall.aim)}</p><div class="small muted">because ${esc(v.direction.overall.why)} · ${esc(when(v.direction.overall.since))}</div>` : empty('No overall aim yet.')),
+  ].join('');
+
+  // People.
+  $('#peopleGrid').innerHTML = v.people?.length ? v.people.map(person).join('') : panel('Nobody yet', empty(v.people ? 'She hasn\'t met anyone yet.' : 'People couldn\'t be read.'));
+
+  // Subjects.
+  const subs = v.subjects ?? [];
+  $('#subjectsBox').innerHTML = subs.length
+    ? `<div class="stats"><div><b>${subs.length}</b>subjects</div><div><b>${subs.filter((s) => s.interest >= 50).length}</b>she's really into</div></div>` +
+      subs.map((s) => bar(s.name, s.interest, { wide: true, cls: s.interest >= 50 ? 'love' : '', title: `${s.mentions} mentions${Object.keys(s.people).length ? `; came up with ${Object.keys(s.people).join(', ')}` : ''}; from ${Object.entries(s.sources).map(([k, n]) => `${k} ×${n}`).join(', ')}${s.last ? `; last ${when(s.last)}` : ''}` })).join('')
+    : empty('No subjects yet: they grow from what she talks about, reads and makes.');
+
+  // Wants, by layer.
+  const layers = [['desires', 'What she wants to do'], ['needs', 'What she needs'], ['outcomes', 'What acting gives her']];
+  $('#wantsGrid').innerHTML = w ? layers.map(([layer, title]) => {
+    const rows = w.wants.filter((x) => x.layer === layer);
+    return panel(title, rows.length ? rows.map((x) => bar(x.label, x.level, { stack: true, mark: x.threshold, title: x.want, cls: x.threshold != null && x.level >= x.threshold ? 'warn' : '' })).join('') : empty('None.'));
+  }).join('') + (w.last_action ? panel('Last thing her pressure had her do', `<div>${esc(w.last_action.want ?? w.last_action.bucket ?? JSON.stringify(w.last_action))}</div><div class="small muted">${esc(when(w.last_action.at))}</div>`) : '') : panel('Wants', empty('Her wants couldn\'t be read.'));
+
+  // Goals and direction.
+  const g = v.goals;
+  // Each goal with what it's for, its first lead checked with whoever asked, and its trail of passes, on or off track.
+  const passMark = (p) => p.status === 'off_goal' ? `<span style="color:var(--bad)">off track</span>${p.why ? `: ${esc(p.why)}` : ''}` : p.status === 'researched' || p.status === 'written' ? '<span style="color:var(--good)">on track</span>' : `<span class="muted">${esc(p.status ?? '')}</span>`;
+  const goalItem = (x) => `<li>${esc(x.text)}${x.activity ? ` <span class="chip">${esc(x.activity)}</span>` : ''}`
+    + (x.anchor?.purpose ? `<div class="small"><b>For:</b> ${esc(x.anchor.purpose)}${x.anchor.from ? ` <span class="muted">(${esc(x.anchor.from)})</span>` : ''}</div>` : (x.kind === 'goal' && !x.done && !x.dropped ? '<div class="small" style="color:var(--warn)">No purpose saved: he should ask what it\'s for.</div>' : ''))
+    + (x.anchor?.fits?.length ? `<div class="small muted">counts: ${esc(x.anchor.fits.join('; '))}</div>` : '')
+    + (x.anchor?.not?.length ? `<div class="small muted">doesn't count: ${esc(x.anchor.not.join('; '))}</div>` : '')
+    + (x.checkIn ? `<div class="small">${x.checkIn.answered ? `<b>First lead checked:</b> ${esc(x.checkIn.lead)} <span class="muted">→ ${esc(x.checkIn.answer ?? '')}</span>` : `<b>First lead, waiting on ${esc(x.anchor?.from ?? 'whoever asked')}:</b> ${esc(x.checkIn.lead)}`}</div>` : '')
+    + (x.criteria ? `<div class="small muted">done when: ${esc(x.criteria)}</div>` : '') + (x.reason ? `<div class="small muted">why: ${esc(x.reason)}</div>` : '')
+    + (x.trail?.length ? `<details class="small"><summary>${x.progress} pass(es) so far${x.trail.some((p) => p.status === 'off_goal') ? `, ${x.trail.filter((p) => p.status === 'off_goal').length} off track` : ''}</summary><ul>${x.trail.slice().reverse().map((p) => `<li><span class="muted">${esc(when(p.at))}</span> ${esc(p.query)}: ${passMark(p)}</li>`).join('')}</ul>${x.nextQuestion ? `<div class="muted">next: ${esc(x.nextQuestion)}</div>` : ''}</details>` : '')
+    + '</li>';
+  const changes = v.direction?.history ?? [];
+  $('#goalsGrid').innerHTML = [
+    panel('Goals she\'s chosen', g?.open?.length ? `<ul class="list">${g.open.map(goalItem).join('')}</ul>` : empty('No open goals: she chooses them herself, and hasn\'t yet.')),
+    panel('What she\'s decided about herself', g?.insights?.length ? `<ul class="list">${g.insights.map((x) => `<li>${esc(x.text)}<div class="small muted">${esc(when(x.at))}</div></li>`).join('')}</ul>` : empty('No insights kept yet.')),
+    panel('How her direction has changed', changes.length ? `<ul class="list timeline">${changes.slice().reverse().map((e) => `<li><time>${esc(when(e.at))}</time><span><b>${esc(e.who === 'overall' ? 'overall' : e.name)}</b>: ${esc(e.what)} ${e.after ? `“${esc(e.after)}”` : '(none)'}${e.why ? `<div class="small muted">because ${esc(e.why)}${e.evidence ? ` · from “${esc(e.evidence)}”` : ''}</div>` : ''}</span></li>`).join('')}</ul>` : empty('No changes yet.')),
+    ...(g?.finished?.length ? [panel('Goals finished or let go', `<ul class="list">${g.finished.map((x) => `<li>${esc(x.text)} <span class="chip">${x.done ? 'done' : 'dropped'}</span>${x.dropReason ? `<div class="small muted">${esc(x.dropReason)}</div>` : ''}</li>`).join('')}</ul>`)] : []),
+  ].join('');
+
+  // Who she is.
+  const asp = v.self?.aspects ?? [];
+  $('#selfBox').innerHTML = asp.length
+    ? `<dl class="qa">${asp.map((a) => `<dt>${esc(a.question)}</dt><dd>${a.answer ? esc(a.answer) : '<span class="empty">Still working this out.</span>'}${a.at ? ` <span class="small muted">· ${esc(when(a.at))}</span>` : ''}</dd>`).join('')}</dl>`
+    : empty('Nothing worked out about herself yet.');
+
+  // Lately.
+  const l = v.lately ?? {};
+  $('#latelyGrid').innerHTML = [
+    panel('Her journal', l.journal?.length ? `<ul class="list">${l.journal.map((e) => `<li><b>${esc(e.title)}</b>${e.at ? ` <span class="small muted">${esc(when(e.at))}</span>` : ''}<div class="small">${esc(e.body)}</div></li>`).join('')}</ul>` : empty('Nothing written yet.')),
+    panel('Songs she\'s written', l.songs?.length ? `<ul class="list">${l.songs.map((s) => `<li>“${esc(s.title)}”${s.at ? ` <span class="small muted">${esc(when(s.at))}</span>` : ''}</li>`).join('')}</ul>` : empty('No songs yet.')),
+  ].join('');
+
+  $('#tasteBox').textContent = v.taste || 'Her taste couldn\'t be read.';
+}
+
+// Searching what she knows about someone.
+document.addEventListener('input', (e) => {
+  const id = e.target?.dataset?.search;
+  if (!id) return;
+  const q = e.target.value.trim().toLowerCase();
+  for (const li of document.querySelectorAll(`#mem-${CSS.escape(id)} li`)) li.hidden = Boolean(q) && !li.dataset.text.includes(q);
+});
+
+// Open panels and searches survive a refresh.
+function keepOpen(fn) {
+  const open = [...document.querySelectorAll('details')].map((d, i) => d.open && d.querySelector('summary')?.textContent);
+  const searches = Object.fromEntries([...document.querySelectorAll('[data-search]')].map((i) => [i.dataset.search, i.value]));
+  fn();
+  const summaries = [...document.querySelectorAll('details')];
+  for (const d of summaries) if (open.includes(d.querySelector('summary')?.textContent)) d.open = true;
+  for (const i of document.querySelectorAll('[data-search]')) if (searches[i.dataset.search]) { i.value = searches[i.dataset.search]; i.dispatchEvent(new Event('input', { bubbles: true })); }
+}
+
+async function load() {
+  try {
+    const res = await fetch('/api/life');
+    const v = await res.json();
+    if (!res.ok) throw new Error(v.error || `the dashboard answered ${res.status}`);
+    keepOpen(() => render(v));
+  } catch (err) {
+    $('#when').textContent = `Couldn't read her life: ${err.message}. Is she running? This page needs her dashboard from after 2026-11-10.`;
+  }
+}
+fetch('/api/status').then((r) => r.json()).then((s) => { if (s.look?.active?.url) $('#avatar').src = s.look.active.url; }).catch(() => {});
+$('#refresh').addEventListener('click', load);
+load();
+// The page reads her again while it's open and visible, so it stays current without a reload.
+setInterval(() => { if (!document.hidden) load(); }, 30_000);
+</script>
+</body>
+</html>

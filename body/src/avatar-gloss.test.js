@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {avatarState} from './avatar-state.js';
+import {enabledTools,runTool} from './tools.js';
+test('lip gloss can be applied, preserved during color edits, removed and reset',async()=>{
+  const ctx={perms:{owner:true},speaker:{id:'dashboard'},userText:'Change my avatar cosmetics',character:{id:'main',main:true}};
+  const definition=enabledTools(ctx).find(t=>t.function.name==='avatar_appearance');
+  assert.match(definition.function.parameters.properties.lip_gloss.description,/Use -1 when not needed/);
+  assert.ok(enabledTools(ctx).some(t=>t.function.name==='avatar_background'));
+  let result=await runTool('avatar_appearance',{action:'set',lip_gloss:.75},ctx);
+  assert.match(result,/"lipGloss":0.75/);assert.equal(avatarState.get().lipstick,null);
+  await runTool('avatar_appearance',{action:'set',lipstick:'rose',lip_gloss:-1},ctx);
+  assert.equal(avatarState.get().lipGloss,.75);assert.equal(avatarState.get().lipstick,'#b8647e');
+  await runTool('avatar_appearance',{action:'set',lip_gloss:0},ctx);
+  assert.equal(avatarState.get().lipGloss,0);assert.equal(avatarState.get().lipstick,'#b8647e');
+  result=await runTool('avatar_appearance',{action:'set',lip_gloss:2},ctx);
+  assert.match(result,/Lip gloss must be between/);assert.equal(avatarState.get().lipGloss,0);
+  await runTool('avatar_appearance',{action:'set',lip_gloss:.5},ctx);
+  await runTool('avatar_appearance',{action:'reset'},ctx);assert.equal(avatarState.get().lipGloss,0);
+});
